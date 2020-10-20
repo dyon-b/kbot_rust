@@ -21,7 +21,7 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
     // Post latency, Send a message.
     let now = Instant::now();
     let mut sent_message = msg.channel_id
-        .say(&ctx.http, "Calculating post latency...").await?;
+        .say(&ctx.http, ":hourglass: Calculating latency...").await?;
     let post_latency = now.elapsed().as_millis();
 
     sent_message.edit(ctx, |m| {
