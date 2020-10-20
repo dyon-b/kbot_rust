@@ -57,11 +57,15 @@ impl EventHandler for Handler {
 
 #[group]
 #[commands(ping, about)]
-struct General;
+struct Meta;
 
 #[group]
 #[commands(purge)]
 struct Moderation;
+
+#[group]
+#[commands(serverinfo)]
+struct Info;
 
 #[help]
 #[individual_command_tip =
@@ -131,7 +135,7 @@ async fn main() {
             .ignore_bots(true)
             .ignore_webhooks(true)
         )
-        .group(&GENERAL_GROUP)
+        .group(&META_GROUP)
         .group(&MODERATION_GROUP)
         .help(&MY_HELP);
 
