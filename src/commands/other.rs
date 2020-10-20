@@ -10,7 +10,7 @@ use std::time::Instant;
 #[command]
 #[description = "Pong!"]
 #[aliases("pong", "latency")]
-async fn ping(ctx: &Context, message: &Message) -> CommandResult {
+async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
     let gateway_url = format!("https://discord.com/api/v{}/gateway", GATEWAY_VERSION);
 
     // Get latency, Get the gateway URL.
@@ -20,7 +20,7 @@ async fn ping(ctx: &Context, message: &Message) -> CommandResult {
 
     // Post latency, Send a message.
     let now = Instant::now();
-    let mut sent_message = message.channel_id
+    let mut sent_message = msg.channel_id
         .say(&ctx.http, "Calculating post latency...").await?;
     let post_latency = now.elapsed().as_millis();
 
@@ -38,10 +38,10 @@ async fn ping(ctx: &Context, message: &Message) -> CommandResult {
 #[command]
 #[description = "Some information about the bot."]
 #[aliases("info")]
-async fn about(ctx: &Context, message: &Message) -> CommandResult {
+async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     let avatar_url = ctx.cache.current_user().await.avatar_url();
 
-    message.channel_id.send_message(&ctx.http, |m| {
+    msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             e.title("About kBot");
             e.description(format!("**Bot source**\n{}\n**Support server**\n{}",
