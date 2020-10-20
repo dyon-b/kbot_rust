@@ -10,7 +10,13 @@ use serenity::{
     client::bridge::gateway::ShardManager,
     framework::{
         StandardFramework,
-        standard::macros::group,
+        standard::{
+            help_commands,
+            macros::{
+                group,
+                help,
+            }
+        },
     },
     http::Http,
     model::{event::ResumedEvent, gateway::Ready},
@@ -25,6 +31,9 @@ use commands::{
     other::*,
 };
 use serenity::client::bridge::gateway::GatewayIntents;
+use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup};
+use serenity::model::channel::Message;
+use serenity::model::id::UserId;
 
 struct ShardManagerContainer;
 
@@ -48,6 +57,32 @@ impl EventHandler for Handler {
 #[group]
 #[commands(ping, about)]
 struct General;
+
+#[help]
+#[individual_command_tip =
+"Hello!
+If you want more information about a specific command, just pass the command as argument."]
+#[command_not_found_text = "Could not find: `{}`."]
+// Define the maximum Levenshtein-distance between a searched command-name
+// and commands.
+#[max_levenshtein_distance(3)]
+#[indention_prefix = "+"]
+#[lacking_permissions = "Hide"]
+// If the user is nothing but lacking a certain role, we just display it hence our variant is `Nothing`.
+#[lacking_role = "Nothing"]
+// The last `enum`-variant is `Strike`, which ~~strikes~~ a command.
+#[wrong_channel = "Strike"]
+async fn my_help(
+    ctx: &Context,
+    msg: &Message,
+    args: Args,
+    help_options: &'static HelpOptions,
+    groups: &[&'static CommandGroup],
+    owners: HashSet<UserId>
+) -> CommandResult {
+    let _ = help_commands::with_embeds(ctx, msg, args, help_options, groups, owners).await;
+    Ok(())
+}
 
 #[tokio::main]
 async fn main() {
@@ -79,17 +114,20 @@ async fn main() {
         Err(why) => panic!("Could not access application info: {:?}", why),
     };
 
+    let default_prefix = env::var("DEFAULT_PREFIX")
+        .expect("!");
     // Create the framework
     let framework = StandardFramework::new()
         .configure(|config| config
             .owners(owners)
             .on_mention(Some(_bot_id))
-            .prefix("!")
+            .prefix(&default_prefix)
             .allow_dm(false)
             .ignore_bots(true)
             .ignore_webhooks(true)
         )
-        .group(&GENERAL_GROUP);
+        .group(&GENERAL_GROUP)
+        .help(&MY_HELP);
 
     let mut client = Client::new(&token)
         .framework(framework)
