@@ -1,2 +1,2 @@
-pub mod other;
+pub mod meta;
 pub mod moderation;

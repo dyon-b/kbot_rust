@@ -28,7 +28,7 @@ use tracing_subscriber::{
     EnvFilter,
 };
 use commands::{
-    other::*,
+    meta::*,
     moderation::*,
 };
 use serenity::client::bridge::gateway::GatewayIntents;
