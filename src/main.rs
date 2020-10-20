@@ -30,6 +30,7 @@ use tracing_subscriber::{
 use commands::{
     meta::*,
     moderation::*,
+    info::*,
 };
 use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup};
@@ -123,8 +124,8 @@ async fn main() {
         Err(why) => panic!("Could not access application info: {:?}", why),
     };
 
-    let default_prefix = env::var("DEFAULT_PREFIX")
-        .expect("!");
+    let default_prefix = env::var("DEFAULT_PREFIX").unwrap_or(String::from("!"));
+
     // Create the framework
     let framework = StandardFramework::new()
         .configure(|config| config
@@ -137,6 +138,7 @@ async fn main() {
         )
         .group(&META_GROUP)
         .group(&MODERATION_GROUP)
+        .group(&INFO_GROUP)
         .help(&MY_HELP);
 
     let mut client = Client::new(&token)
