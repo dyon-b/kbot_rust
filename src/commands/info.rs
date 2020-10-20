@@ -5,7 +5,6 @@ use serenity::framework::standard::{
     macros::command,
 };
 use serenity::futures::{StreamExt};
-use serenity::FutureExt;
 
 #[command]
 #[description = "Gives information about a guild"]
@@ -16,7 +15,7 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
     let mut voice_channels = 0;
 
     // Collect the channel count
-    let mut channels = msg.guild_id.unwrap().channels(ctx).await?;
+    let channels = msg.guild_id.unwrap().channels(ctx).await?;
     for channel in channels {
         let channel = channel.1;
         if channel.kind == ChannelType::Text {

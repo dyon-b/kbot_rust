@@ -124,7 +124,7 @@ async fn main() {
         Err(why) => panic!("Could not access application info: {:?}", why),
     };
 
-    let default_prefix = env::var("DEFAULT_PREFIX").unwrap_or(String::from("!"));
+    let default_prefix = env::var("DEFAULT_PREFIX").unwrap_or_else(|_| String::from("!"));
 
     // Create the framework
     let framework = StandardFramework::new()
