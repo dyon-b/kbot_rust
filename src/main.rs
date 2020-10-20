@@ -29,6 +29,7 @@ use tracing_subscriber::{
 };
 use commands::{
     other::*,
+    moderation::*,
 };
 use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup};
@@ -57,6 +58,10 @@ impl EventHandler for Handler {
 #[group]
 #[commands(ping, about)]
 struct General;
+
+#[group]
+#[commands(purge)]
+struct Moderation;
 
 #[help]
 #[individual_command_tip =
@@ -127,6 +132,7 @@ async fn main() {
             .ignore_webhooks(true)
         )
         .group(&GENERAL_GROUP)
+        .group(&MODERATION_GROUP)
         .help(&MY_HELP);
 
     let mut client = Client::new(&token)
