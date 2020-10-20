@@ -14,3 +14,5 @@ tracing-futures = "0.2" # needed so intrument works with async functions.
 serenity = "0.9.0-rc.2"
 tokio = "0.2"
 dotenv = "0.15.0"
+
+reqwest = "0.10"

@@ -4,12 +4,33 @@ use serenity::framework::standard::{
     CommandResult,
     macros::command,
 };
+use serenity::constants::GATEWAY_VERSION;
+use std::time::Instant;
 
 #[command]
 #[description = "Pong!"]
 #[aliases("pong")]
 async fn ping(ctx: &Context, message: &Message) -> CommandResult {
-    message.channel_id.say(&ctx.http, "Pong!").await?;
+    let gateway_url = format!("https://discord.com/api/v{}/gateway", GATEWAY_VERSION);
+
+    // Get latency, Get the gateway URL.
+    let now = Instant::now();
+    reqwest::get(&gateway_url).await?;
+    let get_latency = now.elapsed().as_millis();
+
+    // Post latency, Send a message.
+    let now = Instant::now();
+    let mut sent_message = message.channel_id
+        .say(&ctx.http, "Calculating post latency...").await?;
+    let post_latency = now.elapsed().as_millis();
+
+    sent_message.edit(ctx, |m| {
+        m.content("");
+        m.embed(|e| {
+            e.title("Pong! Latency");
+            e.description(format!("REST GET: {}ms\nREST POST: {}ms", get_latency, post_latency))
+        })
+    }).await?;
 
     Ok(())
 }
