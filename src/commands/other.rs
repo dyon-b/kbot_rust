@@ -9,7 +9,7 @@ use std::time::Instant;
 
 #[command]
 #[description = "Pong!"]
-#[aliases("pong")]
+#[aliases("pong", "latency")]
 async fn ping(ctx: &Context, message: &Message) -> CommandResult {
     let gateway_url = format!("https://discord.com/api/v{}/gateway", GATEWAY_VERSION);
 

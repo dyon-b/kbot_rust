@@ -122,7 +122,7 @@ async fn main() {
             .owners(owners)
             .on_mention(Some(_bot_id))
             .prefix(&default_prefix)
-            .allow_dm(false)
+            .allow_dm(true)
             .ignore_bots(true)
             .ignore_webhooks(true)
         )
@@ -134,6 +134,7 @@ async fn main() {
         .event_handler(Handler)
         .add_intent(GatewayIntents::GUILD_MESSAGES)
         .add_intent(GatewayIntents::GUILDS)
+        .add_intent(GatewayIntents::DIRECT_MESSAGES)
         .await
         .expect("Error creating client");
 
