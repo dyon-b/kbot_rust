@@ -16,3 +16,5 @@ tokio = "0.2"
 dotenv = "0.15.0"
 
 reqwest = "0.10"
+
+mongodb = "1.1.1"

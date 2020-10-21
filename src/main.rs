@@ -1,4 +1,5 @@
 mod commands;
+mod helpers;
 
 use std::{
     collections::HashSet,
@@ -32,10 +33,17 @@ use commands::{
     moderation::*,
     info::*,
 };
+
+use helpers::global_data::Database;
+use mongodb::Client as MongoClient;
+use mongodb::options::ClientOptions as MongoClientOptions;
+
 use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup};
 use serenity::model::channel::Message;
 use serenity::model::id::UserId;
+use serenity::model::guild::{PartialGuild, Guild};
+use crate::helpers::database_helper::DatabaseGuild;
 
 struct ShardManagerContainer;
 
@@ -47,6 +55,13 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
+    // async fn guild_delete(&self, _ctx: Context, _incomplete: PartialGuild, _full: Option<Guild>) {
+    //     // let database_guild = DatabaseGuild {
+    //     //     id: 0,
+    //     //     prefix: "".to_string()
+    //     // };
+    // }
+
     async fn ready(&self, _: Context, ready: Ready) {
         info!("Connected as {}", ready.user.name);
     }
@@ -153,6 +168,20 @@ async fn main() {
     {
         let mut data = client.data.write().await;
         data.insert::<ShardManagerContainer>(client.shard_manager.clone());
+
+        // Mongo client options
+        let connection_url = env::var("MONGO_CONNECTION").expect("mongodb://127.0.0.1:27017");
+        let mut client_options = match MongoClientOptions::parse(&connection_url).await {
+            Ok(options) => options,
+            Err(why) => panic!("Error occurred getting mongo client options: {}", why),
+        };
+        client_options.app_name = Some("kbot_rust".to_string());
+        // Store mongo client in context data
+        let mongo_client = match MongoClient::with_options(client_options) {
+            Ok(client) => client,
+            Err(why) => panic!("Error occurred getting mongo client: {}", why),
+        };
+        data.insert::<Database>(mongo_client);
     }
 
     if let Err(why) = client.start().await {
