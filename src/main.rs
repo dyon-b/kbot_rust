@@ -44,7 +44,7 @@ use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup};
 use serenity::model::channel::Message;
 use serenity::model::id::UserId;
-use serenity::model::guild::{PartialGuild, Guild};
+use serenity::model::guild::{PartialGuild, Guild, GuildUnavailable};
 use crate::helpers::database_helper::DatabaseGuild;
 
 struct ShardManagerContainer;
@@ -57,8 +57,7 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    // guild_delete is broken
-    async fn guild_delete(&self, ctx: Context, _incomplete: PartialGuild, _full: Option<Guild>) {
+    async fn guild_delete(&self, ctx: Context, _incomplete: GuildUnavailable, _full: Option<Guild>) {
         // Delete guild from database
         match DatabaseGuild::delete(&ctx, _incomplete.id.0 as i64).await {
             Ok(_) => {},
