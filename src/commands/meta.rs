@@ -6,7 +6,6 @@ use serenity::framework::standard::{
 };
 use serenity::constants::GATEWAY_VERSION;
 use std::time::Instant;
-use crate::helpers::global_data::Database;
 use crate::helpers::database_helper::DatabaseGuild;
 
 #[command]
@@ -26,14 +25,16 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
         .say(&ctx.http, ":hourglass: Calculating latency...").await?;
     let post_latency = now.elapsed().as_millis();
 
-    // println!("{:?}", ctx.data.read().await.get::<Database>().unwrap().list_database_names(None, None).await.unwrap());
-    DatabaseGuild::get(ctx, msg.guild_id.unwrap().0).await;
+    // Database guild find latency
+    let now = Instant::now();
+    DatabaseGuild::get(ctx, msg.guild_id.unwrap().0 as i64).await;
+    let get_guild_latency = now.elapsed().as_millis();
 
     sent_message.edit(ctx, |m| {
         m.content("");
         m.embed(|e| {
             e.title("Pong! Latency");
-            e.description(format!("REST GET: {}ms\nREST POST: {}ms", get_latency, post_latency))
+            e.description(format!("REST GET: {}ms\nREST POST: {}ms\nMONGO GET GUILD: {}ms", get_latency, post_latency, get_guild_latency))
         })
     }).await?;
 

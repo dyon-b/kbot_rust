@@ -16,6 +16,7 @@ use serenity::{
             macros::{
                 group,
                 help,
+                hook,
             }
         },
     },
@@ -32,6 +33,7 @@ use commands::{
     meta::*,
     moderation::*,
     info::*,
+    configuration::*,
 };
 
 use helpers::global_data::Database;
@@ -55,12 +57,14 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    // async fn guild_delete(&self, _ctx: Context, _incomplete: PartialGuild, _full: Option<Guild>) {
-    //     // let database_guild = DatabaseGuild {
-    //     //     id: 0,
-    //     //     prefix: "".to_string()
-    //     // };
-    // }
+    // guild_delete is broken
+    async fn guild_delete(&self, ctx: Context, _incomplete: PartialGuild, _full: Option<Guild>) {
+        // Delete guild from database
+        match DatabaseGuild::delete(&ctx, _incomplete.id.0 as i64).await {
+            Ok(_) => {},
+            Err(why) => error!("Error when deleting guild from database: {}", why),
+        }
+    }
 
     async fn ready(&self, _: Context, ready: Ready) {
         info!("Connected as {}", ready.user.name);
@@ -82,6 +86,11 @@ struct Moderation;
 #[group]
 #[commands(serverinfo)]
 struct Info;
+
+#[group]
+#[prefixes("config", "configure", "conf")]
+#[commands(prefix)]
+struct Configuration;
 
 #[help]
 #[individual_command_tip =
@@ -107,6 +116,27 @@ async fn my_help(
 ) -> CommandResult {
     let _ = help_commands::with_embeds(ctx, msg, args, help_options, groups, owners).await;
     Ok(())
+}
+
+#[hook]
+async fn dynamic_prefix(ctx: &Context, msg: &Message) -> Option<String> { // Custom per guild prefixes.
+    let guild_id = &msg.guild_id;
+
+    if let Some(_) = guild_id {
+        // This looks horrible
+        match DatabaseGuild::get(ctx, guild_id.unwrap().0 as i64).await {
+            Some(document) => {
+                let database_guild: DatabaseGuild = bson::from_document(document).unwrap();
+                match database_guild.prefix {
+                    Some(new_prefix) => return Some(new_prefix),
+                    None => {},
+                }
+            },
+            None => {},
+        }
+    }
+
+    Some(env::var("DEFAULT_PREFIX").unwrap_or_else(|_| String::from("?")))
 }
 
 #[tokio::main]
@@ -139,14 +169,13 @@ async fn main() {
         Err(why) => panic!("Could not access application info: {:?}", why),
     };
 
-    let default_prefix = env::var("DEFAULT_PREFIX").unwrap_or_else(|_| String::from("!"));
-
     // Create the framework
     let framework = StandardFramework::new()
         .configure(|config| config
             .owners(owners)
             .on_mention(Some(_bot_id))
-            .prefix(&default_prefix)
+            //.prefix(&default_prefix)
+            .dynamic_prefix(dynamic_prefix)
             .allow_dm(true)
             .ignore_bots(true)
             .ignore_webhooks(true)
@@ -154,9 +183,10 @@ async fn main() {
         .group(&META_GROUP)
         .group(&MODERATION_GROUP)
         .group(&INFO_GROUP)
+        .group(&CONFIGURATION_GROUP)
         .help(&MY_HELP);
 
-    let mut client = Client::new(&token)
+    let mut client = Client::builder(&token)
         .framework(framework)
         .event_handler(Handler)
         .add_intent(GatewayIntents::GUILD_MESSAGES)
@@ -170,7 +200,7 @@ async fn main() {
         data.insert::<ShardManagerContainer>(client.shard_manager.clone());
 
         // Mongo client options
-        let connection_url = env::var("MONGO_CONNECTION").expect("mongodb://127.0.0.1:27017");
+        let connection_url = env::var("MONGO_URL").unwrap_or_else(|_| String::from("mongodb://127.0.0.1:27017"));
         let mut client_options = match MongoClientOptions::parse(&connection_url).await {
             Ok(options) => options,
             Err(why) => panic!("Error occurred getting mongo client options: {}", why),
