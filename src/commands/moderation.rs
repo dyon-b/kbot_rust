@@ -11,7 +11,7 @@ use serenity::framework::standard::{CommandResult, macros::command, Args};
 async fn purge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let delete_num = args.single::<u64>();
     match delete_num {
-        Err(_) => { msg.channel_id.say(ctx, ":x: The value provided was not a valid number").await?; },
+        Err(_) => { msg.channel_id.say(ctx, ":no_entry_sign: The value provided was not a valid number").await?; },
         Ok(delete_n) => {
             let mut find_msg = msg.channel_id
                 .say(ctx, format!(":hourglass: Finding and deleting {} messages...", delete_n)).await?;

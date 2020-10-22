@@ -21,7 +21,7 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         let new_prefix = args.single::<String>();
         match new_prefix {
             Err(_) => {
-                msg.channel_id.say(ctx, ":x: The prefix provided was not valid.").await?;
+                msg.channel_id.say(ctx, ":no_entry_sign: The prefix provided was not valid.").await?;
             },
             Ok(new_prefix) => {
                 let mut database_guild = DatabaseGuild::get_or_insert_new(ctx, msg.guild_id.unwrap().0 as i64).await;
