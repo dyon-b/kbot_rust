@@ -41,10 +41,10 @@ use mongodb::Client as MongoClient;
 use mongodb::options::ClientOptions as MongoClientOptions;
 
 use serenity::client::bridge::gateway::GatewayIntents;
-use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup};
+use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup, CommandError};
 use serenity::model::channel::Message;
 use serenity::model::id::UserId;
-use serenity::model::guild::{PartialGuild, Guild, GuildUnavailable};
+use serenity::model::guild::{Guild, GuildUnavailable};
 use crate::helpers::database_helper::DatabaseGuild;
 
 struct ShardManagerContainer;
@@ -118,6 +118,13 @@ async fn my_help(
 }
 
 #[hook]
+async fn after(_: &Context, _: &Message, command_name: &str, error: Result<(), CommandError>) {
+    if let Err(why) = error {
+        error!("Error in {}: {:?}", command_name, why);
+    }
+}
+
+#[hook]
 async fn dynamic_prefix(ctx: &Context, msg: &Message) -> Option<String> { // Custom per guild prefixes.
     let guild_id = &msg.guild_id;
 
@@ -179,6 +186,7 @@ async fn main() {
             .ignore_bots(true)
             .ignore_webhooks(true)
         )
+        .after(after)
         .group(&META_GROUP)
         .group(&MODERATION_GROUP)
         .group(&INFO_GROUP)
