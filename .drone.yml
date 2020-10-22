@@ -1,0 +1,15 @@
+kind: pipeline
+name: kbot
+
+steps:
+  - name: docker
+    image: plugins/docker
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: docker-registry.dyonb.nl/dyon/kbot
+      auto_tag: true
+      registry: docker-registry.dyonb.nl
+      dockerfile: Dockerfile
