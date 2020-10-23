@@ -45,7 +45,7 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 #[description = "Some information about the bot."]
-#[aliases("info")]
+#[aliases("info", "stats")]
 async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     let avatar_url = ctx.cache.current_user().await.avatar_url();
 
@@ -62,8 +62,9 @@ async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             e.title("About kBot");
-            e.description(format!("**Bot source**\n{}\n**Support server**\n{}",
-                                  "https://github.com/kara-b/kBot2", "https://discord.gg/qzGj4En"));
+            e.description(format!("A general purpose bot made with [Rust]({}), [Serenity]({}) and love.\n\
+            You can find the bot's source [here]({}).",
+                                  "https://www.rust-lang.org/", "https://github.com/serenity-rs/serenity", "https://github.com/kara-b/kbot_rust"));
             e.field("Uptime", uptime, true);
             e.thumbnail(avatar_url.unwrap_or_else(String::new));
             e
