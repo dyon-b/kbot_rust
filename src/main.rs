@@ -226,7 +226,7 @@ async fn main() {
         data.insert::<Uptime>(Instant::now());
     }
 
-    if let Err(why) = client.start().await {
+    if let Err(why) = client.start_autosharded().await {
         error!("Client error: {:?}", why);
     }
 }
