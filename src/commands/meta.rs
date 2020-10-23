@@ -49,6 +49,7 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     let avatar_url = ctx.cache.current_user().await.avatar_url();
 
+    // Uptime
     let uptime = {
         let instant = {
             let data_read = ctx.data.read().await;
@@ -59,12 +60,20 @@ async fn about(ctx: &Context, msg: &Message) -> CommandResult {
         seconds_to_days(duration.as_secs())
     };
 
+    // Guild count, Channel count and user count.
+    let guilds_count = &ctx.cache.guilds().await.len();
+    let channels_count = &ctx.cache.guild_channel_count().await;
+    let users_count = ctx.cache.user_count().await;
+    let users_count_unknown = ctx.cache.unknown_members().await as usize;
+
     msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             e.title("About kBot");
             e.description(format!("A general purpose bot made with [Rust]({}), [Serenity]({}) and love.\n\
             You can find the bot's source [here]({}).",
                                   "https://www.rust-lang.org/", "https://github.com/serenity-rs/serenity", "https://github.com/kara-b/kbot_rust"));
+            e.field("Statistics", format!("Guilds: {}\nChannels: {}\nTotal Users: {}\nCached Users: {}",
+            guilds_count, channels_count, users_count + users_count_unknown, users_count), true);
             e.field("Uptime", uptime, true);
             e.thumbnail(avatar_url.unwrap_or_else(String::new));
             e
