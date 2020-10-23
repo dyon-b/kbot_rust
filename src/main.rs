@@ -5,6 +5,7 @@ use std::{
     collections::HashSet,
     env,
     sync::Arc,
+    time::Instant
 };
 use serenity::{
     async_trait,
@@ -46,6 +47,7 @@ use serenity::model::channel::Message;
 use serenity::model::id::UserId;
 use serenity::model::guild::{Guild, GuildUnavailable};
 use crate::helpers::database_helper::DatabaseGuild;
+use crate::helpers::global_data::Uptime;
 
 struct ShardManagerContainer;
 
@@ -219,6 +221,9 @@ async fn main() {
             Err(why) => panic!("Error occurred getting mongo client: {}", why),
         };
         data.insert::<Database>(mongo_client);
+
+        // Insert uptime to global data
+        data.insert::<Uptime>(Instant::now());
     }
 
     if let Err(why) = client.start().await {
