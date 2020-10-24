@@ -27,16 +27,20 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
         .say(&ctx.http, ":hourglass: Calculating latency...").await?;
     let post_latency = now.elapsed().as_millis();
 
-    // Database guild find latency
-    let now = Instant::now();
-    DatabaseGuild::get(ctx, msg.guild_id.unwrap().0 as i64).await;
-    let get_guild_latency = now.elapsed().as_millis();
+    // Database guild find latency, Absolutely cursed.
+    let mut guild_string = String::from("");
+    if msg.guild_id != None {
+        let now = Instant::now();
+        DatabaseGuild::get(ctx, msg.guild_id.unwrap().0 as i64).await;
+        let get_guild_latency = now.elapsed().as_millis();
+        guild_string = format!("\nMONGO GET GUILD: {}ms", get_guild_latency);
+    }
 
     sent_message.edit(ctx, |m| {
         m.content("");
         m.embed(|e| {
             e.title("Pong! Latency");
-            e.description(format!("REST GET: {}ms\nREST POST: {}ms\nMONGO GET GUILD: {}ms", get_latency, post_latency, get_guild_latency))
+            e.description(format!("REST GET: {}ms\nREST POST: {}ms{}", get_latency, post_latency, guild_string))
         })
     }).await?;
 
