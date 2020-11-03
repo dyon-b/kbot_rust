@@ -12,11 +12,12 @@ tracing-subscriber = "0.2"
 tracing-futures = "0.2" # needed so intrument works with async functions.
 
 #serenity = "0.9.0-rc.2"
-serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next" }
+serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", features = ["collector"] }
 tokio = "0.2"
 dotenv = "0.15.0"
 
-reqwest = "0.10"
+reqwest = { version = "0.10", features = ["json"] }
+urlencoding = "1.1"
 
 mongodb = "1.1.1"
 bson = "1.1.0"

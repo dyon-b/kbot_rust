@@ -35,6 +35,7 @@ use commands::{
     moderation::*,
     info::*,
     configuration::*,
+    modrinth::*,
 };
 
 use helpers::global_data::Database;
@@ -92,6 +93,11 @@ struct Info;
 #[prefixes("config", "configure", "conf")]
 #[commands(prefix)]
 struct Configuration;
+
+#[group]
+#[prefixes("mr", "modrinth")]
+#[commands(search)]
+struct Modrinth;
 
 #[help]
 #[individual_command_tip =
@@ -193,6 +199,7 @@ async fn main() {
         .group(&MODERATION_GROUP)
         .group(&INFO_GROUP)
         .group(&CONFIGURATION_GROUP)
+        .group(&MODRINTH_GROUP)
         .help(&MY_HELP);
 
     let mut client = Client::builder(&token)
@@ -201,6 +208,8 @@ async fn main() {
         .add_intent(GatewayIntents::GUILD_MESSAGES)
         .add_intent(GatewayIntents::GUILDS)
         .add_intent(GatewayIntents::DIRECT_MESSAGES)
+        .add_intent(GatewayIntents::GUILD_MESSAGE_REACTIONS)
+        .add_intent(GatewayIntents::DIRECT_MESSAGE_REACTIONS)
         .await
         .expect("Error creating client");
 
