@@ -5,6 +5,7 @@ use urlencoding::encode as url_encode;
 use serde::Deserialize;
 use serenity::static_assertions::_core::time::Duration;
 use serenity::futures::StreamExt;
+use serenity::builder::CreateEmbed;
 
 #[derive(Deserialize, Debug)]
 struct ModrinthModSearch {
@@ -55,14 +56,9 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut current_hit: usize = 0;
     let mut message = msg.channel_id.send_message(&ctx.http, |m| m.embed(|embed| {
         let current_mod = &json.hits.get(0).unwrap();
-        embed.title(&current_mod.title)
-            .url(&current_mod.page_url)
-            .description(&current_mod.description)
-            .author(|f| f.name(&current_mod.author).url(&current_mod.author_url))
-            .footer(|f| f.text(format!("id: {}", &current_mod.mod_id)))
-            .thumbnail(&current_mod.icon_url)
+        embed.0 = modrinth_mod_embed_builder(current_mod).0;
+        embed
     })).await.unwrap();
-    // let mut message = msg.channel_id.say(&ctx.http, &json.hits.get(0).unwrap().title).await?;
 
     // Emote menu
     message.react(&ctx.http, ReactionType::Unicode(String::from("⬅"))).await?;
@@ -83,14 +79,23 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
         &message.edit(&ctx.http, |f| f.embed(|embed| {
             let current_mod = &json.hits.get(current_hit).unwrap();
-            embed.title(&current_mod.title)
-                .url(&current_mod.page_url)
-                .description(&current_mod.description)
-                .author(|f| f.name(&current_mod.author).url(&current_mod.author_url))
-                .footer(|f| f.text(format!("id: {}", &current_mod.mod_id)))
-                .thumbnail(&current_mod.icon_url)
+            embed.0 = modrinth_mod_embed_builder(current_mod).0;
+            embed
         })).await;
     }
 
     Ok(())
+}
+
+fn modrinth_mod_embed_builder(modrinth_mod: &ModrinthMod) -> CreateEmbed {
+    let mut embed = CreateEmbed::default();
+
+    embed.title(&modrinth_mod.title)
+        .url(&modrinth_mod.page_url)
+        .description(&modrinth_mod.description)
+        .author(|f| f.name(&modrinth_mod.author).url(&modrinth_mod.author_url))
+        .footer(|f| f.text(format!("id: {}", &modrinth_mod.mod_id)))
+        .thumbnail(&modrinth_mod.icon_url);
+
+    embed
 }
