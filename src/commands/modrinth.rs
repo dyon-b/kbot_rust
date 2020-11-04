@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serenity::static_assertions::_core::time::Duration;
 use serenity::futures::StreamExt;
 use serenity::builder::CreateEmbed;
+use serenity::utils::Colour;
 
 #[derive(Deserialize, Debug)]
 struct ModrinthModSearch {
@@ -46,7 +47,24 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     // Append query
     api_url.push_str(&format!("query={}&", url_encode(args.message())));
 
-    let json = reqwest::get(&api_url).await?.json::<ModrinthModSearch>().await?;
+    // Get the json from the API and handle any errors.
+    let json_request = reqwest::get(&api_url).await?;
+    let json = match json_request.json::<ModrinthModSearch>().await {
+        Ok(json) => json,
+        Err(why) => {
+            if why.is_decode() {
+                msg.channel_id.send_message(&ctx.http, |m| m.embed(|e| {
+                    e.title("An error occurred decoding Modrinth's response.")
+                        .description(format!("```{}```", why))
+                        .color(Colour::RED)
+                })).await?;
+            } else {
+                msg.channel_id.say(&ctx.http, ":no_entry_sign: An error occurred fetching from Modrinth's API.").await?;
+            }
+
+            return Ok(())
+        }
+    };
 
     if json.total_hits < 1 {
         msg.channel_id.say(&ctx.http, ":no_entry_sign: Nothing was found.").await?;
@@ -68,7 +86,7 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .author_id(msg.author.id).await;
     while let Some(reaction) = reactions_collector.next().await {
         // Delete the reaction
-        reaction.as_inner_ref().delete(&ctx.http).await;
+        reaction.as_inner_ref().delete(&ctx.http).await?;
 
         let emoji = &reaction.as_inner_ref().emoji.to_string();
         if emoji == "⬅" && current_hit != 0 {
