@@ -2,7 +2,6 @@ use serenity::prelude::*;
 use serenity::model::prelude::*;
 use serenity::framework::standard::{CommandResult, macros::command, Args};
 use urlencoding::encode as url_encode;
-use reqwest::Response;
 use serde::Deserialize;
 use serenity::static_assertions::_core::time::Duration;
 use serenity::futures::StreamExt;
@@ -36,7 +35,7 @@ struct ModrinthMod {
 #[command]
 #[aliases("s")]
 pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if args.len() < 1 {
+    if args.is_empty() {
         msg.channel_id.say(&ctx.http, ":no_entry_sign: Please provide what to search.").await?;
         return Ok(())
     }
@@ -73,7 +72,7 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .author_id(msg.author.id).await;
     while let Some(reaction) = reactions_collector.next().await {
         // Delete the reaction
-        &reaction.as_inner_ref().delete(&ctx.http).await;
+        reaction.as_inner_ref().delete(&ctx.http).await;
 
         let emoji = &reaction.as_inner_ref().emoji.to_string();
         if emoji == "⬅" && current_hit != 0 {

@@ -10,7 +10,7 @@ use crate::helpers::database_helper::DatabaseGuild;
 #[only_in("guilds")]
 #[usage = "new_prefix"]
 async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    if args.len() == 0 {
+    if args.is_empty() {
         let mut database_guild = DatabaseGuild::get_or_insert_new(ctx, msg.guild_id.unwrap().0 as i64).await;
         database_guild.prefix = None;
 

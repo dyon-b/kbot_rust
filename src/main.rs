@@ -136,7 +136,7 @@ async fn after(_: &Context, _: &Message, command_name: &str, error: Result<(), C
 async fn dynamic_prefix(ctx: &Context, msg: &Message) -> Option<String> { // Custom per guild prefixes.
     let guild_id = &msg.guild_id;
 
-    if let Some(_) = guild_id {
+    if guild_id.is_some() {
         // This looks horrible
         match DatabaseGuild::get(ctx, guild_id.unwrap().0 as i64).await {
             Some(document) => {
