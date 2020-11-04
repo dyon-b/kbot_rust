@@ -113,7 +113,8 @@ fn modrinth_mod_embed_builder(modrinth_mod: &ModrinthMod) -> CreateEmbed {
         .description(&modrinth_mod.description)
         .author(|f| f.name(&modrinth_mod.author).url(&modrinth_mod.author_url))
         .footer(|f| f.text(format!("id: {}", &modrinth_mod.mod_id)))
-        .thumbnail(&modrinth_mod.icon_url);
+        .thumbnail(&modrinth_mod.icon_url)
+        .color(Colour::from(5083687));
 
     embed
 }
