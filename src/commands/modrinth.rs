@@ -7,6 +7,7 @@ use serenity::static_assertions::_core::time::Duration;
 use serenity::futures::StreamExt;
 use serenity::builder::CreateEmbed;
 use serenity::utils::Colour;
+use serenity::model::Permissions;
 
 #[derive(Deserialize, Debug)]
 struct ModrinthModSearch {
@@ -66,11 +67,13 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
 
+    // Check if there are enough results
     if json.total_hits < 1 {
         msg.channel_id.say(&ctx.http, ":no_entry_sign: Nothing was found.").await?;
         return Ok(())
     }
 
+    // Send initial message and an integer for the current index
     let mut current_hit: usize = 0;
     let mut message = msg.channel_id.send_message(&ctx.http, |m| m.embed(|embed| {
         let current_mod = &json.hits.get(0).unwrap();
@@ -82,11 +85,22 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     message.react(&ctx.http, ReactionType::Unicode(String::from("⬅"))).await?;
     message.react(&ctx.http, ReactionType::Unicode(String::from("➡"))).await?;
 
+    // Check if the bot can manage messages, And if so enable the bot to remove reactions.
+    let mut can_manage_messages = false;
+    let guild = msg.guild(&ctx).await;
+    if guild.is_some() {
+        can_manage_messages = msg.guild(&ctx).await.unwrap()
+            .user_permissions_in(msg.channel_id, &ctx.http.get_current_user().await?.id)
+            .contains(Permissions::MANAGE_MESSAGES);
+    }
+
     let mut reactions_collector = message.await_reactions(&ctx).timeout(Duration::from_secs(5 * 60))
-        .author_id(msg.author.id).await;
+        .author_id(msg.author.id).added(true).removed(!can_manage_messages).await;
     while let Some(reaction) = reactions_collector.next().await {
         // Delete the reaction
-        reaction.as_inner_ref().delete(&ctx.http).await?;
+        if can_manage_messages {
+            reaction.as_inner_ref().delete(&ctx.http).await?;
+        }
 
         let emoji = &reaction.as_inner_ref().emoji.to_string();
         if emoji == "⬅" && current_hit != 0 {
@@ -95,6 +109,7 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             current_hit += 1;
         }
 
+        // Edit the message with the new index
         &message.edit(&ctx.http, |f| f.embed(|embed| {
             let current_mod = &json.hits.get(current_hit).unwrap();
             embed.0 = modrinth_mod_embed_builder(current_mod).0;
@@ -103,7 +118,9 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     }
 
     // Delete all reactions once done
-    &message.delete_reactions(&ctx.http).await?;
+    if can_manage_messages {
+        &message.delete_reactions(&ctx.http).await?;
+    }
 
     Ok(())
 }
