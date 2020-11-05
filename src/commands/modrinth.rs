@@ -102,6 +102,9 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         })).await;
     }
 
+    // Delete all reactions once done
+    &message.delete_reactions(&ctx.http).await?;
+
     Ok(())
 }
 
