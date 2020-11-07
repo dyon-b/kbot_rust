@@ -10,6 +10,13 @@ use mongodb::options::FindOneAndReplaceOptions;
 pub struct DatabaseGuild {
     pub _id: i64,
     pub prefix: Option<String>,
+    pub counting: Option<GuildCounting>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct GuildCounting {
+    pub channel: i64,
+    pub count: i64,
 }
 
 impl DatabaseGuild {
@@ -20,7 +27,8 @@ impl DatabaseGuild {
             bson::from_document(
                 DatabaseGuild::insert_or_replace(ctx, DatabaseGuild {
                     _id,
-                    prefix: None
+                    prefix: None,
+                    counting: None
                 }).await
             ).unwrap()
         } else {

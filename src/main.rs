@@ -7,24 +7,17 @@ use std::{
     sync::Arc,
     time::Instant
 };
-use serenity::{
-    async_trait,
-    client::bridge::gateway::ShardManager,
-    framework::{
-        StandardFramework,
-        standard::{
-            help_commands,
-            macros::{
-                group,
-                help,
-                hook,
-            }
-        },
+use serenity::{async_trait, client::bridge::gateway::ShardManager, framework::{
+    StandardFramework,
+    standard::{
+        help_commands,
+        macros::{
+            group,
+            help,
+            hook,
+        }
     },
-    http::Http,
-    model::{event::ResumedEvent, gateway::Ready},
-    prelude::*,
-};
+}, http::Http, model::{event::ResumedEvent, gateway::Ready}, prelude::*};
 use tracing::{error, info};
 use tracing_subscriber::{
     FmtSubscriber,
@@ -68,6 +61,40 @@ impl EventHandler for Handler {
         }
     }
 
+    async fn message(&self, ctx: Context, msg: Message) {
+        // Get the DatabaseGuild
+        let mut database_guild: DatabaseGuild;
+        if let Some(document) = DatabaseGuild::get(&ctx, msg.guild_id.unwrap().0 as i64).await {
+            database_guild = bson::from_document(document).unwrap();
+        } else {
+            return ();
+        }
+
+        if database_guild.counting.is_some() {
+            // If not the correct channel, Return.
+            if msg.channel_id.0 != database_guild.counting.unwrap().channel as u64 {
+                return ();
+            }
+
+            let current_count = msg.content.parse::<i64>();
+            if current_count.is_ok() && current_count.unwrap() == database_guild.counting.unwrap().count + 1 {
+                // Hacky stuff, Ignore
+                database_guild.counting.unwrap().count += 1;
+                let mut new_counting = database_guild.counting.unwrap();
+                new_counting.count += 1;
+
+                database_guild.counting.replace(new_counting);
+
+                DatabaseGuild::insert_or_replace(&ctx, database_guild).await;
+            } else {
+                // Delete the message if it's not the correct number
+                match msg.delete(&ctx).await {
+                    _ => {}
+                };
+            }
+        }
+    }
+
     async fn ready(&self, _: Context, ready: Ready) {
         info!("Connected as {}", ready.user.name);
     }
@@ -91,7 +118,7 @@ struct Info;
 
 #[group]
 #[prefixes("config", "configure", "conf")]
-#[commands(prefix)]
+#[commands(prefix, count)]
 struct Configuration;
 
 #[group]
