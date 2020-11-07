@@ -132,8 +132,11 @@ fn modrinth_mod_embed_builder(modrinth_mod: &ModrinthMod) -> CreateEmbed {
         .url(&modrinth_mod.page_url)
         .description(&modrinth_mod.description)
         .author(|f| f.name(&modrinth_mod.author).url(&modrinth_mod.author_url))
-        .footer(|f| f.text(format!("id: {}", &modrinth_mod.mod_id)))
+        .footer(|f| f.text(format!("id: {}, last modified: {}", &modrinth_mod.mod_id, &modrinth_mod.date_modified)))
         .thumbnail(&modrinth_mod.icon_url)
+        .field("Categories", &modrinth_mod.categories.join(", "), true)
+        .field("Latest version", &modrinth_mod.latest_version, true)
+        .field("Total downloads", &modrinth_mod.downloads, true)
         .color(Colour::from(5083687));
 
     embed
