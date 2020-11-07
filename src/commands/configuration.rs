@@ -87,20 +87,6 @@ async fn count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 msg.channel_id.say(ctx, format!(":white_check_mark: Set the counting channel to <#{}>", new_channel.0)).await?;
             }
         }
-        // let new_prefix = args.single::<String>();
-        // match new_prefix {
-        //     Err(_) => {
-        //         msg.channel_id.say(ctx, ":no_entry_sign: The prefix provided was not valid.").await?;
-        //     },
-        //     Ok(new_prefix) => {
-        //         let mut database_guild = DatabaseGuild::get_or_insert_new(ctx, msg.guild_id.unwrap().0 as i64).await;
-        //         database_guild.prefix = Some(new_prefix.clone());
-        //
-        //         DatabaseGuild::insert_or_replace(ctx, database_guild).await;
-        //
-        //         msg.channel_id.say(ctx, format!(":white_check_mark: Set the prefix to {}", new_prefix)).await?;
-        //     }
-        // }
     }
 
     Ok(())
