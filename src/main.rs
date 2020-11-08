@@ -87,6 +87,11 @@ impl EventHandler for Handler {
                         _ => {}
                     };
                 }
+            } else {
+                // Delete the message if it couldn't parse as a number
+                match msg.delete(&ctx).await {
+                    _ => {}
+                };
             }
         }
     }
