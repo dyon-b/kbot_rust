@@ -211,7 +211,8 @@ async fn main() {
         .configure(|config| config
             .owners(owners)
             .on_mention(Some(_bot_id))
-            //.prefix(&default_prefix)
+            // Disable default prefix
+            .prefix("")
             .dynamic_prefix(dynamic_prefix)
             .allow_dm(true)
             .ignore_bots(true)
