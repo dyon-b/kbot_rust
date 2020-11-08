@@ -64,7 +64,7 @@ impl DatabaseGuild {
         DatabaseGuild::get_collection(ctx).await.find_one_and_delete(document_id, None).await
     }
 
-    async fn get_collection(ctx: &Context) -> Collection {
+    pub(crate) async fn get_collection(ctx: &Context) -> Collection {
         let mongo_database = env::var("MONGO_DATABASE").unwrap();
         let database = ctx.data.read().await.get::<Database>().unwrap().database(&mongo_database);
 

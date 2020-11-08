@@ -4,6 +4,7 @@ use serenity::framework::standard::{CommandResult, macros::command, Args};
 use serenity::utils::Colour;
 use crate::helpers::database_helper::{DatabaseGuild, GuildCounting};
 use serenity::builder::CreateEmbed;
+use crate::helpers::global_data::CountingCache;
 
 #[command]
 #[description = "Sets the prefix for this server"]
@@ -48,9 +49,14 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[usage = "channel_id"]
 async fn count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.is_empty() {
+        // Remove from database and cache
         let mut database_guild = DatabaseGuild::get_or_insert_new(ctx, msg.guild_id.unwrap().0 as i64).await;
-        database_guild.counting = None;
 
+        // Remove from cache
+        ctx.data.read().await.get::<CountingCache>().unwrap().remove(&ChannelId::from(database_guild.counting.unwrap().channel as u64));
+
+        //Remove from database
+        database_guild.counting = None;
         DatabaseGuild::insert_or_replace(ctx, database_guild).await;
 
         msg.channel_id.say(ctx, ":white_check_mark: Removed the counting channel.").await?;
@@ -79,10 +85,14 @@ async fn count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                     return Ok(());
                 }
 
+                // Insert it into the database
                 let mut database_guild = DatabaseGuild::get_or_insert_new(ctx, msg.guild_id.unwrap().0 as i64).await;
                 database_guild.counting = Some(GuildCounting { channel: new_channel.0 as i64, count: 0 });
 
                 DatabaseGuild::insert_or_replace(ctx, database_guild).await;
+
+                // Insert into CountingCache
+                ctx.data.read().await.get::<CountingCache>().unwrap().insert(new_channel, 0);
 
                 msg.channel_id.say(ctx, format!(":white_check_mark: Set the counting channel to <#{}>", new_channel.0)).await?;
             }

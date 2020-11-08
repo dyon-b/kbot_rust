@@ -34,14 +34,17 @@ use commands::{
 use helpers::global_data::Database;
 use mongodb::Client as MongoClient;
 use mongodb::options::ClientOptions as MongoClientOptions;
+use mongodb::bson::{doc};
 
 use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup, CommandError};
 use serenity::model::channel::Message;
-use serenity::model::id::UserId;
+use serenity::model::id::{UserId, ChannelId};
 use serenity::model::guild::{Guild, GuildUnavailable};
 use crate::helpers::database_helper::DatabaseGuild;
-use crate::helpers::global_data::Uptime;
+use crate::helpers::global_data::{Uptime, CountingCache};
+use serenity::futures::StreamExt;
+use dashmap::DashMap;
 
 struct ShardManagerContainer;
 
@@ -62,35 +65,28 @@ impl EventHandler for Handler {
     }
 
     async fn message(&self, ctx: Context, msg: Message) {
-        // Get the DatabaseGuild
-        let mut database_guild: DatabaseGuild;
-        if let Some(document) = DatabaseGuild::get(&ctx, msg.guild_id.unwrap().0 as i64).await {
-            database_guild = bson::from_document(document).unwrap();
-        } else {
-            return ();
-        }
+        let counting_cache = ctx.data.read().await.get::<CountingCache>().cloned().unwrap();
 
-        if database_guild.counting.is_some() {
-            // If not the correct channel, Return.
-            if msg.channel_id.0 != database_guild.counting.unwrap().channel as u64 {
-                return ();
-            }
+        // Counting channel
+        if let Some(counting_map) = counting_cache.get(&msg.channel_id) {
+            if let Ok(new_number) = msg.content.parse::<i64>() {
+                if new_number == counting_map.value() + 1 {
+                    counting_cache.insert(msg.channel_id, new_number);
 
-            let current_count = msg.content.parse::<i64>();
-            if current_count.is_ok() && current_count.unwrap() == database_guild.counting.unwrap().count + 1 {
-                // Hacky stuff, Ignore
-                database_guild.counting.unwrap().count += 1;
-                let mut new_counting = database_guild.counting.unwrap();
-                new_counting.count += 1;
+                    // Edit the database to show the right number
+                    let mut database_guild = DatabaseGuild::get_or_insert_new(&ctx, msg.guild_id.unwrap().0 as i64).await;
+                    // Stupid hacky stuff
+                    let mut new_counting = database_guild.counting.unwrap();
+                    new_counting.count += 1;
+                    database_guild.counting.replace(new_counting);
 
-                database_guild.counting.replace(new_counting);
-
-                DatabaseGuild::insert_or_replace(&ctx, database_guild).await;
-            } else {
-                // Delete the message if it's not the correct number
-                match msg.delete(&ctx).await {
-                    _ => {}
-                };
+                    DatabaseGuild::insert_or_replace(&ctx, database_guild).await;
+                } else {
+                    // Delete the message if it's not the correct number
+                    match msg.delete(&ctx).await {
+                        _ => {}
+                    };
+                }
             }
         }
     }
@@ -244,6 +240,7 @@ async fn main() {
         let mut data = client.data.write().await;
         data.insert::<ShardManagerContainer>(client.shard_manager.clone());
 
+        let mongo_database = env::var("MONGO_DATABASE").unwrap();
         // Mongo client options
         let connection_url = env::var("MONGO_URL").unwrap_or_else(|_| String::from("mongodb://127.0.0.1:27017"));
         let mut client_options = match MongoClientOptions::parse(&connection_url).await {
@@ -257,6 +254,18 @@ async fn main() {
             Err(why) => panic!("Error occurred getting mongo client: {}", why),
         };
         data.insert::<Database>(mongo_client);
+
+        // Search guilds that have counting
+        let counting_filter = doc! { "counting": { "$ne": null } };
+        let mut guilds_with_counting_cursor = data.get::<Database>().unwrap().database(&mongo_database).collection("guilds").find(counting_filter, None).await.unwrap();
+        // Make a DashMap for guilds that have counting
+        let counting_cache: DashMap<ChannelId, i64> = DashMap::new();
+        while let Some(document) = guilds_with_counting_cursor.next().await {
+            let database_guild = bson::from_document::<DatabaseGuild>(document.unwrap()).unwrap();
+            counting_cache.insert(ChannelId::from(database_guild.counting.unwrap().channel as u64), database_guild.counting.unwrap().count);
+        }
+        // Insert the DashMap
+        data.insert::<CountingCache>(Arc::from(counting_cache));
 
         // Insert uptime to global data
         data.insert::<Uptime>(Instant::now());

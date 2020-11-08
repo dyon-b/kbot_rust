@@ -22,6 +22,9 @@ mongodb = "1.1.1"
 bson = "1.1.0"
 serde = { version = "1.0.117", features = ["derive"] }
 
+# Caching
+dashmap = "4.0.0-rc6"
+
 [dependencies.serenity]
 version = "0.9.0"
 features = ["collector"]
