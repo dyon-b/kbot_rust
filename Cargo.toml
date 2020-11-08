@@ -25,6 +25,9 @@ serde = { version = "1.0.117", features = ["derive"] }
 # Caching
 dashmap = "4.0.0-rc6"
 
+# Parsing toml (such as Cargo.toml)
+toml = "0.5.7"
+
 [dependencies.serenity]
 version = "0.9.1"
 features = ["collector"]

@@ -6,6 +6,8 @@ use serenity::framework::standard::{
 };
 use serenity::constants::GATEWAY_VERSION;
 use std::time::Instant;
+use std::fs;
+use toml::Value as TomlValue;
 use crate::helpers::database_helper::DatabaseGuild;
 use crate::helpers::global_data::Uptime;
 use crate::helpers::general_helper::seconds_to_days;
@@ -70,12 +72,16 @@ async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     let users_count = ctx.cache.user_count().await;
     let users_count_unknown = ctx.cache.unknown_members().await as usize;
 
+    // Read Cargo.toml
+    let cargo_toml: TomlValue = toml::from_slice(&fs::read("Cargo.toml")?)?;
+    let serenity_version = cargo_toml["dependencies"]["serenity"]["version"].as_str().unwrap();
+
     msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             e.title("About kBot");
-            e.description(format!("A general purpose bot made with [Rust]({}), [Serenity]({}) and love.\n\
+            e.description(format!("A general purpose bot made with [Rust]({}), [Serenity v{}]({}) and love.\n\
             You can find the bot's source [here]({}).",
-                                  "https://www.rust-lang.org/", "https://github.com/serenity-rs/serenity", "https://github.com/kara-b/kbot_rust"));
+                                  "https://www.rust-lang.org/", serenity_version, "https://github.com/serenity-rs/serenity", "https://github.com/kara-b/kbot_rust"));
             e.field("Statistics", format!("Guilds: {}\nChannels: {}\nTotal Users: {}\nCached Users: {}",
             guilds_count, channels_count, users_count + users_count_unknown, users_count), true);
             e.field("Uptime", uptime, true);
