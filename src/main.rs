@@ -1,5 +1,6 @@
 mod commands;
 mod helpers;
+mod models;
 
 use std::{
     collections::HashSet,
@@ -124,7 +125,7 @@ struct Configuration;
 
 #[group]
 #[prefixes("mr", "modrinth")]
-#[commands(search)]
+#[commands(search, id)]
 struct Modrinth;
 
 #[help]

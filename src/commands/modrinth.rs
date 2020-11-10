@@ -2,38 +2,12 @@ use serenity::prelude::*;
 use serenity::model::prelude::*;
 use serenity::framework::standard::{CommandResult, macros::command, Args};
 use urlencoding::encode as url_encode;
-use serde::Deserialize;
 use serenity::static_assertions::_core::time::Duration;
 use serenity::futures::StreamExt;
 use serenity::builder::CreateEmbed;
 use serenity::utils::Colour;
 use serenity::model::Permissions;
-
-#[derive(Deserialize, Debug)]
-struct ModrinthModSearch {
-    hits: Vec<ModrinthMod>,
-    offset: i32,
-    limit: i32,
-    total_hits: i32,
-}
-
-#[derive(Deserialize, Debug)]
-struct ModrinthMod {
-    mod_id: String,
-    author: String,
-    title: String,
-    description: String,
-    categories: Vec<String>,
-    versions: Vec<String>,
-    downloads: i32,
-    page_url: String,
-    icon_url: String,
-    author_url: String,
-    date_created: String,
-    date_modified: String,
-    latest_version: String,
-    host: String,
-}
+use crate::models::modrinth::*;
 
 #[command]
 #[aliases("s")]
@@ -121,6 +95,50 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if can_manage_messages {
         &message.delete_reactions(&ctx.http).await?;
     }
+
+    Ok(())
+}
+
+#[command]
+#[aliases("modid", "mod_id", "mod")]
+pub async fn id(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    if args.is_empty() {
+        msg.channel_id.say(&ctx.http, ":no_entry_sign: Please provide what mod id to get.").await?;
+        return Ok(())
+    }
+
+    let api_url = format!("https://api.modrinth.com/api/v1/mod/{}", url_encode(args.message()));
+
+    // Get the json from the API and handle any errors.
+    let json_request = reqwest::get(&api_url).await?;
+    let modrinth_mod = match json_request.json::<ModrinthMod>().await {
+        Ok(json) => json,
+        Err(why) => {
+            if why.is_decode() {
+                msg.channel_id.send_message(&ctx.http, |m| m.embed(|e| {
+                    e.title("An error occurred decoding Modrinth's response.")
+                        .description(format!("```{}```", why))
+                        .color(Colour::RED)
+                })).await?;
+            } else {
+                msg.channel_id.say(&ctx.http, ":no_entry_sign: An error occurred fetching from Modrinth's API.").await?;
+            }
+
+            return Ok(())
+        }
+    };
+
+    // // Check if there are enough results
+    // if json.total_hits < 1 {
+    //     msg.channel_id.say(&ctx.http, ":no_entry_sign: Nothing was found.").await?;
+    //     return Ok(())
+    // }
+
+    // Send initial message and an integer for the current index
+    msg.channel_id.send_message(&ctx.http, |m| m.embed(|embed| {
+        embed.0 = modrinth_mod_embed_builder(&modrinth_mod).0;
+        embed
+    })).await.unwrap();
 
     Ok(())
 }
