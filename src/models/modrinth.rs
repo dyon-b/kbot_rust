@@ -2,14 +2,14 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 pub struct ModrinthModSearch {
-    pub hits: Vec<ModrinthMod>,
+    pub hits: Vec<SearchedModrinthMod>,
     pub offset: i32,
     pub limit: i32,
     pub total_hits: i32,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct ModrinthMod {
+pub struct SearchedModrinthMod {
     pub mod_id: String,
     pub author: String,
     pub title: String,

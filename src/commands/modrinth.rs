@@ -111,7 +111,7 @@ pub async fn id(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     // Get the json from the API and handle any errors.
     let json_request = reqwest::get(&api_url).await?;
-    let modrinth_mod = match json_request.json::<ModrinthMod>().await {
+    let modrinth_mod = match json_request.json::<SearchedModrinthMod>().await {
         Ok(json) => json,
         Err(why) => {
             if why.is_decode() {
@@ -143,7 +143,7 @@ pub async fn id(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     Ok(())
 }
 
-fn modrinth_mod_embed_builder(modrinth_mod: &ModrinthMod) -> CreateEmbed {
+fn modrinth_mod_embed_builder(modrinth_mod: &SearchedModrinthMod) -> CreateEmbed {
     let mut embed = CreateEmbed::default();
 
     embed.title(&modrinth_mod.title)
