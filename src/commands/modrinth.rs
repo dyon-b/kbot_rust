@@ -111,6 +111,13 @@ pub async fn id(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     // Get the json from the API and handle any errors.
     let json_request = reqwest::get(&api_url).await?;
+
+    // If nothing was found
+    if &json_request.status().as_str() == &"404" {
+        msg.channel_id.say(&ctx.http, ":no_entry_sign: Nothing was found.").await?;
+        return Ok(())
+    }
+
     let modrinth_mod = match json_request.json::<FullModrinthMod>().await {
         Ok(json) => json,
         Err(why) => {
