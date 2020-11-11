@@ -51,7 +51,7 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut current_hit: usize = 0;
     let mut message = msg.channel_id.send_message(&ctx.http, |m| m.embed(|embed| {
         let current_mod = &json.hits.get(0).unwrap();
-        embed.0 = modrinth_mod_embed_builder(current_mod).0;
+        embed.0 = searched_modrinth_embed(current_mod).0;
         embed
     })).await.unwrap();
 
@@ -86,7 +86,7 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         // Edit the message with the new index
         &message.edit(&ctx.http, |f| f.embed(|embed| {
             let current_mod = &json.hits.get(current_hit).unwrap();
-            embed.0 = modrinth_mod_embed_builder(current_mod).0;
+            embed.0 = searched_modrinth_embed(current_mod).0;
             embed
         })).await;
     }
@@ -111,7 +111,7 @@ pub async fn id(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     // Get the json from the API and handle any errors.
     let json_request = reqwest::get(&api_url).await?;
-    let modrinth_mod = match json_request.json::<SearchedModrinthMod>().await {
+    let modrinth_mod = match json_request.json::<FullModrinthMod>().await {
         Ok(json) => json,
         Err(why) => {
             if why.is_decode() {
@@ -128,22 +128,16 @@ pub async fn id(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
 
-    // // Check if there are enough results
-    // if json.total_hits < 1 {
-    //     msg.channel_id.say(&ctx.http, ":no_entry_sign: Nothing was found.").await?;
-    //     return Ok(())
-    // }
-
-    // Send initial message and an integer for the current index
+    // Send message
     msg.channel_id.send_message(&ctx.http, |m| m.embed(|embed| {
-        embed.0 = modrinth_mod_embed_builder(&modrinth_mod).0;
+        embed.0 = full_modrinth_embed(&modrinth_mod).0;
         embed
     })).await.unwrap();
 
     Ok(())
 }
 
-fn modrinth_mod_embed_builder(modrinth_mod: &SearchedModrinthMod) -> CreateEmbed {
+fn searched_modrinth_embed(modrinth_mod: &SearchedModrinthMod) -> CreateEmbed {
     let mut embed = CreateEmbed::default();
 
     embed.title(&modrinth_mod.title)
@@ -155,6 +149,24 @@ fn modrinth_mod_embed_builder(modrinth_mod: &SearchedModrinthMod) -> CreateEmbed
         .field("Categories", &modrinth_mod.categories.join(", "), true)
         .field("Latest version", &modrinth_mod.latest_version, true)
         .field("Total downloads", &modrinth_mod.downloads, true)
+        .color(Colour::from(5083687));
+
+    embed
+}
+
+fn full_modrinth_embed(modrinth_mod: &FullModrinthMod) -> CreateEmbed {
+    let mut embed = CreateEmbed::default();
+
+    embed.title(&modrinth_mod.title)
+        .url(&modrinth_mod.source_url.as_ref().unwrap_or(&"".to_string()))
+        .description(&modrinth_mod.description)
+        .footer(|f| f.text(format!("id: {}, last modified: {}", &modrinth_mod.id, &modrinth_mod.updated)))
+        .thumbnail(&modrinth_mod.icon_url)
+        .field("Categories", &modrinth_mod.categories.join(", "), true)
+        .field("Latest version", &modrinth_mod.versions.last().unwrap_or(&String::from("None")), true)
+        .field("Total downloads", &modrinth_mod.downloads, true)
+        .field("Status", &modrinth_mod.status, true)
+        .field("Team", &modrinth_mod.team, true)
         .color(Colour::from(5083687));
 
     embed
