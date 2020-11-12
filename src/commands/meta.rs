@@ -11,6 +11,7 @@ use crate::helpers::global_data::Uptime;
 use crate::helpers::general_helper::seconds_to_days;
 use serenity::builder::CreateEmbed;
 use serenity::utils::Colour;
+use serenity::model::Permissions;
 
 #[command]
 #[description = "Pong!"]
@@ -115,6 +116,37 @@ async fn about(ctx: &Context, msg: &Message) -> CommandResult {
         });
         m
     }).await?;
+
+    Ok(())
+}
+
+#[command]
+#[description = "Gives you an invite link"]
+async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
+    let mut permissions = Permissions::default();
+    permissions.set(Permissions::READ_MESSAGES, true);
+    permissions.set(Permissions::SEND_MESSAGES, true);
+    permissions.set(Permissions::MANAGE_MESSAGES, true);
+    permissions.set(Permissions::EMBED_LINKS, true);
+    permissions.set(Permissions::READ_MESSAGE_HISTORY, true);
+    permissions.set(Permissions::ADD_REACTIONS, true);
+
+    let invite_url = match ctx.cache.current_user().await.invite_url(ctx, permissions).await {
+        Ok(v) => v,
+        Err(why) => {
+            println!("Error creating invite url: {:?}", why);
+
+            msg.channel_id.say(&ctx, ":no_entry_sign: Error creating invite url").await?;
+
+            return Ok(());
+        }
+    };
+
+    msg.channel_id.send_message(&ctx, |m| m.embed(|e| {
+        e.title("Invite link")
+            .url(invite_url)
+            .color(Colour::BLURPLE)
+    })).await?;
 
     Ok(())
 }
