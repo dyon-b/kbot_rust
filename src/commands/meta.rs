@@ -51,12 +51,12 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 #[description = "Some information about the bot."]
-#[aliases("info", "stats")]
+#[aliases("info", "stats", "uptime")]
 async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     let mut embed = CreateEmbed::default();
 
     // Basic info
-    embed.title("Repository");
+    embed.title("kBot");
     embed.url("https://github.com/kara-b/kbot_rust");
     embed.footer(|f| f.text("A general purpose bot made with Rust, Serenity and love.")
         .icon_url("https://raw.githubusercontent.com/serenity-rs/serenity/current/logo.png"));
@@ -72,17 +72,20 @@ async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     let mut text_channels: i32 = 0;
     let mut voice_channels: i32 = 0;
     for guild_id in &ctx.cache.guilds().await {
-        let channels = guild_id.channels(&ctx).await?;
-        for channel in channels {
-            let channel = channel.1;
-            if channel.kind == ChannelType::Text {
-                text_channels += 1;
-            } else if channel.kind == ChannelType::Voice {
-                voice_channels += 1;
+        let cached_guild = guild_id.to_guild_cached(&ctx.cache).await;
+        if cached_guild.is_some() {
+            let channels  = cached_guild.unwrap().channels;
+            for channel in channels {
+                let channel = channel.1;
+                if channel.kind == ChannelType::Text {
+                    text_channels += 1;
+                } else if channel.kind == ChannelType::Voice {
+                    voice_channels += 1;
+                }
             }
         }
     }
-    embed.field("Channels", format!("{} total\n{} text\n{} voice", (text_channels + voice_channels), text_channels, voice_channels), true);
+    embed.field("Cached channels", format!("{} total\n{} text\n{} voice", (text_channels + voice_channels), text_channels, voice_channels), true);
 
     // Member count
     let unknown_members = ctx.cache.unknown_members().await as usize;
