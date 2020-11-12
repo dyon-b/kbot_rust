@@ -9,6 +9,8 @@ use std::time::Instant;
 use crate::helpers::database_helper::DatabaseGuild;
 use crate::helpers::global_data::Uptime;
 use crate::helpers::general_helper::seconds_to_days;
+use serenity::builder::CreateEmbed;
+use serenity::utils::Colour;
 
 #[command]
 #[description = "Pong!"]
@@ -51,7 +53,45 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 #[description = "Some information about the bot."]
 #[aliases("info", "stats")]
 async fn about(ctx: &Context, msg: &Message) -> CommandResult {
-    let avatar_url = ctx.cache.current_user().await.avatar_url();
+    let mut embed = CreateEmbed::default();
+
+    // Basic info
+    embed.title("Repository");
+    embed.url("https://github.com/kara-b/kbot_rust");
+    embed.footer(|f| f.text("A general purpose bot made with Rust, Serenity and love.")
+        .icon_url("https://raw.githubusercontent.com/serenity-rs/serenity/current/logo.png"));
+    embed.color(Colour::BLURPLE);
+
+    // Owner info
+    let owner = &ctx.http.get_current_application_info().await?.owner;
+    let owner_name = format!("{}#{}", owner.name, owner.discriminator);
+    let owner_avatar = owner.avatar_url().unwrap_or(String::new());
+    embed.author(|f| f.name(owner_name).icon_url(owner_avatar));
+
+    // Channels and member count
+    let mut text_channels: i32 = 0;
+    let mut voice_channels: i32 = 0;
+    for guild_id in &ctx.cache.guilds().await {
+        let channels = guild_id.channels(&ctx).await?;
+        for channel in channels {
+            let channel = channel.1;
+            if channel.kind == ChannelType::Text {
+                text_channels += 1;
+            } else if channel.kind == ChannelType::Voice {
+                voice_channels += 1;
+            }
+        }
+    }
+    embed.field("Channels", format!("{} total\n{} text\n{} voice", (text_channels + voice_channels), text_channels, voice_channels), true);
+
+    // Member count
+    let unknown_members = ctx.cache.unknown_members().await as usize;
+    let cached_members = ctx.cache.user_count().await;
+    embed.field("Members", format!("{} unknown\n{} cached", unknown_members, cached_members), true);
+
+    // Guilds count
+    let guilds_count = &ctx.cache.guilds().await.len();
+    embed.field("Guilds", guilds_count, true);
 
     // Uptime
     let uptime = {
@@ -63,23 +103,11 @@ async fn about(ctx: &Context, msg: &Message) -> CommandResult {
         let duration = instant.elapsed();
         seconds_to_days(duration.as_secs())
     };
-
-    // Guild count, Channel count and user count.
-    let guilds_count = &ctx.cache.guilds().await.len();
-    let channels_count = &ctx.cache.guild_channel_count().await;
-    let users_count = ctx.cache.user_count().await;
-    let users_count_unknown = ctx.cache.unknown_members().await as usize;
+    embed.field("Uptime", uptime, true);
 
     msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
-            e.title("About kBot");
-            e.description(format!("A general purpose bot made with [Rust]({}), [Serenity]({}) and love.\n\
-            You can find the bot's source [here]({}).",
-                                  "https://www.rust-lang.org/", "https://github.com/serenity-rs/serenity", "https://github.com/kara-b/kbot_rust"));
-            e.field("Statistics", format!("Guilds: {}\nChannels: {}\nTotal Users: {}\nCached Users: {}",
-            guilds_count, channels_count, users_count + users_count_unknown, users_count), true);
-            e.field("Uptime", uptime, true);
-            e.thumbnail(avatar_url.unwrap_or_else(String::new));
+            e.0 = embed.0;
             e
         });
         m
