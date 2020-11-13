@@ -52,7 +52,7 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 #[description = "Some information about the bot."]
-#[aliases("info", "stats", "uptime")]
+#[aliases("info", "stats", "uptime", "botinfo")]
 async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     let mut embed = CreateEmbed::default();
 
