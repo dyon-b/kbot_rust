@@ -43,7 +43,8 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
         m.content("");
         m.embed(|e| {
             e.title("Pong! Latency");
-            e.description(format!("REST GET: {}ms\nREST POST: {}ms{}", get_latency, post_latency, guild_string))
+            e.description(format!("REST GET: {}ms\nREST POST: {}ms{}", get_latency, post_latency, guild_string));
+            e.color(Colour::BLURPLE)
         })
     }).await?;
 
