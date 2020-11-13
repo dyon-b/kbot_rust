@@ -130,6 +130,7 @@ async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
     permissions.set(Permissions::EMBED_LINKS, true);
     permissions.set(Permissions::READ_MESSAGE_HISTORY, true);
     permissions.set(Permissions::ADD_REACTIONS, true);
+    permissions.set(Permissions::USE_EXTERNAL_EMOJIS, true);
 
     let invite_url = match ctx.cache.current_user().await.invite_url(ctx, permissions).await {
         Ok(v) => v,

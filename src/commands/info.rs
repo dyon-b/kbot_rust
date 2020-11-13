@@ -4,16 +4,16 @@ use serenity::framework::standard::{
     CommandResult,
     macros::command,
 };
-use std::time::Instant;
 use serenity::builder::CreateEmbed;
 use serenity::utils::Colour;
-use serenity::model::event::EventType::PresencesReplace;
 
 #[command]
 #[description = "Gives information about a guild"]
 #[only_in("guilds")]
 #[aliases("server", "guild", "guildinfo")]
 async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
+    let mut message = msg.channel_id.say(&ctx.http, "<a:loading:776804948633059338> Loading information about the guild...").await?;
+
     let cached_guild = msg.guild_id.unwrap().to_guild_cached(&ctx.cache).await.unwrap();
 
     let mut embed = CreateEmbed::default();
@@ -21,12 +21,23 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
     embed.title(&cached_guild.name)
         .thumbnail(&cached_guild.icon_url().unwrap_or(String::new()))
         .color(Colour::BLURPLE)
-        .footer(|f| f.text(format!("ID: {}", cached_guild.id.0)));
+        .footer(|f| f.text(format!("ID: {} Created", cached_guild.id.0)))
+        .timestamp(&msg.guild_id.unwrap().created_at());
 
     // Get the guild owner
     let owner: User = cached_guild.owner_id.to_user(&ctx).await?;
     embed.author(|f| f.name(format!("{}#{} 👑", owner.name, owner.discriminator))
         .icon_url(owner.avatar_url().unwrap_or(String::new())));
+
+    // Emote list
+    let mut animated_emotes = 0;
+    let mut regular_emotes = 0;
+    for emoji in cached_guild.emojis {
+        if emoji.1.animated { animated_emotes += 1; } else { regular_emotes += 1; };
+    }
+    let emoji_limit = cached_guild.premium_tier.num() * 50 + 150;
+    let emote_string = format!("Regular: {}/{}\nAnimated: {}/{}", regular_emotes, emoji_limit, animated_emotes, emoji_limit);
+    embed.field("Emotes", emote_string, true);
 
     // Collect the channel count from cache to be speedy
     let mut text_channels = 0;
@@ -40,6 +51,9 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
             voice_channels += 1;
         }
     }
+    let channels_text = format!("<:text_channel:776807879146471434> {}\n\
+    <:voice_channel:776808150631448576> {}", text_channels, voice_channels);
+    embed.field("Channels", channels_text, true);
 
     // Collect the member count
     let mut bot_count = 0;
@@ -75,9 +89,17 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
     <:status_offline:776752682584899604> {}\n\
     {} humans {} bots {} total", online_count, idle_count, dnd_count, offline_count, human_count, bot_count, member_count);
 
-    embed.field("Members", member_string, true);
+    embed.field("Members", member_string, false);
 
-    msg.channel_id.send_message(ctx, |m| m.embed(|e| {
+    // Boosts
+    let boosts_string = format!("Level {}\n{} boosts", cached_guild.premium_tier.num(), cached_guild.premium_subscription_count);
+    embed.field("Boosts", boosts_string, true);
+
+    // Role count
+    embed.field("Roles", format!("{} roles", cached_guild.roles.len()), true);
+
+    // Send the embed
+    message.edit(&ctx, |f| f.content("").embed(|e| {
         e.0 = embed.0;
         e
     })).await?;
