@@ -5,6 +5,9 @@ use serenity::framework::standard::{
     macros::command,
 };
 use std::time::Instant;
+use serenity::builder::CreateEmbed;
+use serenity::utils::Colour;
+use serenity::model::event::EventType::PresencesReplace;
 
 #[command]
 #[description = "Gives information about a guild"]
@@ -12,6 +15,18 @@ use std::time::Instant;
 #[aliases("server", "guild", "guildinfo")]
 async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
     let cached_guild = msg.guild_id.unwrap().to_guild_cached(&ctx.cache).await.unwrap();
+
+    let mut embed = CreateEmbed::default();
+
+    embed.title(&cached_guild.name)
+        .thumbnail(&cached_guild.icon_url().unwrap_or(String::new()))
+        .color(Colour::BLURPLE)
+        .footer(|f| f.text(format!("ID: {}", cached_guild.id.0)));
+
+    // Get the guild owner
+    let owner: User = cached_guild.owner_id.to_user(&ctx).await?;
+    embed.author(|f| f.name(format!("{}#{} 👑", owner.name, owner.discriminator))
+        .icon_url(owner.avatar_url().unwrap_or(String::new())));
 
     // Collect the channel count from cache to be speedy
     let mut text_channels = 0;
@@ -30,22 +45,41 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
     let mut bot_count = 0;
     let mut human_count = 0;
 
+    let mut online_count = 0;
+    let mut idle_count = 0;
+    let mut dnd_count = 0;
+    let mut offline_count = 0;
+
     for member_result in &cached_guild.members {
         if member_result.1.user.bot { bot_count += 1 } else { human_count += 1 };
+
+        match cached_guild.presences.get(member_result.0) {
+            Some(presence) => {
+                match presence.status {
+                    OnlineStatus::Online => online_count += 1,
+                    OnlineStatus::DoNotDisturb => dnd_count += 1,
+                    OnlineStatus::Idle => idle_count += 1,
+                    OnlineStatus::Offline => offline_count += 1,
+                    OnlineStatus::Invisible => offline_count += 1,
+                    _ => {}
+                }
+            }
+            None => { offline_count += 1; }
+        }
     }
     let member_count = bot_count + human_count;
+    // Add the member count to the embed
+    let member_string = format!("<:status_online:776752278681813032> {} \
+    <:status_idle:776752682244636715> {} \
+    <:status_dnd:776752681808560138> {} \
+    <:status_offline:776752682584899604> {}\n\
+    {} humans {} bots {} total", online_count, idle_count, dnd_count, offline_count, human_count, bot_count, member_count);
 
-    // Get the guild owner
-    let owner: User = cached_guild.owner_id.to_user(&ctx).await?;
+    embed.field("Members", member_string, true);
 
     msg.channel_id.send_message(ctx, |m| m.embed(|e| {
-        e.title(format!("Server info for {}", cached_guild.name))
-            .thumbnail(cached_guild.icon_url().unwrap())
-            .field("Owner", format!("{}#{}", owner.name, owner.discriminator), true)
-            .field("Region", &cached_guild.region, true)
-            .field("Channels", format!("**Text:** {}\n**Voice:** {}\n", text_channels, voice_channels), true)
-            .field("Members", format!("**Total:** {}\n**Humans:** {}\n**Bots:** {}\n", member_count, human_count, bot_count), true)
-            .footer(|f| f.text(format!("ID: {}", cached_guild.id.0)))
+        e.0 = embed.0;
+        e
     })).await?;
 
     Ok(())

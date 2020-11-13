@@ -240,6 +240,7 @@ async fn main() {
         .add_intent(GatewayIntents::DIRECT_MESSAGES)
         .add_intent(GatewayIntents::GUILD_MESSAGE_REACTIONS)
         .add_intent(GatewayIntents::DIRECT_MESSAGE_REACTIONS)
+        .add_intent(GatewayIntents::GUILD_PRESENCES)
         .await
         .expect("Error creating client");
 
