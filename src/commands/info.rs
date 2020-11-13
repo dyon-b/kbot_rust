@@ -35,7 +35,7 @@ async fn serverinfo(ctx: &Context, msg: &Message) -> CommandResult {
     for emoji in cached_guild.emojis {
         if emoji.1.animated { animated_emotes += 1; } else { regular_emotes += 1; };
     }
-    let emoji_limit = cached_guild.premium_tier.num() * 50 + 150;
+    let emoji_limit = cached_guild.premium_tier.num() * 50 + 50;
     let emote_string = format!("Regular: {}/{}\nAnimated: {}/{}", regular_emotes, emoji_limit, animated_emotes, emoji_limit);
     embed.field("Emotes", emote_string, true);
 
