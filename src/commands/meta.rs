@@ -55,6 +55,7 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 #[description = "Some information about the bot."]
 #[aliases("info", "stats", "uptime", "botinfo")]
 async fn about(ctx: &Context, msg: &Message) -> CommandResult {
+    let mut message = msg.channel_id.say(&ctx.http, "<a:loading:776804948633059338> Collecting data...").await?;
     let mut embed = CreateEmbed::default();
 
     // Basic info
@@ -110,13 +111,10 @@ async fn about(ctx: &Context, msg: &Message) -> CommandResult {
     };
     embed.field("Uptime", uptime, true);
 
-    msg.channel_id.send_message(&ctx.http, |m| {
-        m.embed(|e| {
-            e.0 = embed.0;
-            e
-        });
-        m
-    }).await?;
+    message.edit(&ctx, |m| m.content("").embed(|e| {
+        e.0 = embed.0;
+        e
+    })).await?;
 
     Ok(())
 }
