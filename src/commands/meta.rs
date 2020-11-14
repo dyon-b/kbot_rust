@@ -27,7 +27,7 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
     // Post latency, Send a message.
     let now = Instant::now();
     let mut sent_message = msg.channel_id
-        .say(&ctx.http, ":hourglass: Calculating latency...").await?;
+        .say(&ctx.http, "<a:loading:776804948633059338> Calculating latency...").await?;
     let post_latency = now.elapsed().as_millis();
 
     // Database guild find latency, Absolutely cursed.
@@ -39,14 +39,11 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
         guild_string = format!("\nMONGO GET GUILD: {}ms", get_guild_latency);
     }
 
-    sent_message.edit(ctx, |m| {
-        m.content("");
-        m.embed(|e| {
-            e.title("Pong! Latency");
-            e.description(format!("REST GET: {}ms\nREST POST: {}ms{}", get_latency, post_latency, guild_string));
-            e.color(Colour::BLURPLE)
-        })
-    }).await?;
+    sent_message.edit(&ctx, |m| m.content("").embed(|e| {
+        e.title("Pong! Latency");
+        e.description(format!("REST GET: {}ms\nREST POST: {}ms{}", get_latency, post_latency, guild_string));
+        e.color(Colour::BLURPLE)
+    })).await?;
 
     Ok(())
 }
