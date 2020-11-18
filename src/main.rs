@@ -45,6 +45,7 @@ use crate::helpers::database_helper::DatabaseGuild;
 use crate::helpers::global_data::{Uptime, CountingCache};
 use serenity::futures::StreamExt;
 use dashmap::DashMap;
+use serenity::utils::Colour;
 
 struct ShardManagerContainer;
 
@@ -137,6 +138,8 @@ If you want more information about a specific command, just pass the command as 
 #[lacking_role = "Nothing"]
 // The last `enum`-variant is `Strike`, which ~~strikes~~ a command.
 #[wrong_channel = "Strike"]
+#[embed_error_colour(RED)]
+#[embed_success_colour(BLURPLE)]
 async fn my_help(
     ctx: &Context,
     msg: &Message,
