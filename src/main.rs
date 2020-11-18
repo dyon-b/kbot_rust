@@ -183,6 +183,11 @@ async fn on_dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
         DispatchError::Ratelimited(x) => {
             let _ = msg.reply(ctx, format!(":no_entry_sign: You can use this command again in {} seconds.", x.as_secs())).await;
         }
+        DispatchError::LackingPermissions(permissions) => {
+            let _ = msg.channel_id.say(ctx, format!(":no_entry_sign: You're lacking these permissions to run this command: `{}`", permissions)).await;
+        }
+        DispatchError::OnlyForGuilds => { let _ = msg.channel_id.say(ctx, ":no_entry_sign: This command is for guilds only.").await; }
+        DispatchError::OnlyForDM => { let _ = msg.channel_id.say(ctx, ":no_entry_sign: This command is for direct messages only.").await; }
         _ => {
             error!("Unhandled dispatch error: {:?}", error);
         }
