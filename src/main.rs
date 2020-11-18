@@ -34,15 +34,14 @@ use commands::{
 use helpers::global_data::Database;
 use mongodb::Client as MongoClient;
 use mongodb::options::ClientOptions as MongoClientOptions;
-use mongodb::bson::{doc};
 
 use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup, CommandError, DispatchError};
 use serenity::model::channel::Message;
-use serenity::model::id::{UserId, ChannelId};
+use serenity::model::id::{UserId, ChannelId, GuildId};
 use serenity::model::guild::{Guild, GuildUnavailable};
 use crate::helpers::database_helper::DatabaseGuild;
-use crate::helpers::global_data::{Uptime, CountingCache};
+use crate::helpers::global_data::{Uptime, CountingCache, PrefixCache};
 use serenity::futures::StreamExt;
 use dashmap::DashMap;
 
@@ -59,7 +58,18 @@ impl EventHandler for Handler {
     async fn guild_delete(&self, ctx: Context, _incomplete: GuildUnavailable, _full: Option<Guild>) {
         // Delete guild from database
         match DatabaseGuild::delete(&ctx, _incomplete.id.0 as i64).await {
-            Ok(_) => {},
+            Ok(document) => {
+                if document.is_some() {
+                    // Remove from cache
+                    let database_guild = bson::from_document::<DatabaseGuild>(document.unwrap()).unwrap();
+                    if database_guild.counting.is_some() {
+                        ctx.data.read().await.get::<CountingCache>().unwrap().remove(&ChannelId::from(database_guild.counting.unwrap().channel as u64));
+                    }
+                    if database_guild.prefix.is_some() {
+                        ctx.data.read().await.get::<PrefixCache>().unwrap().remove(&_incomplete.id);
+                    }
+                }
+            },
             Err(why) => error!("Error when deleting guild from database: {}", why),
         }
     }
@@ -191,16 +201,11 @@ async fn dynamic_prefix(ctx: &Context, msg: &Message) -> Option<String> { // Cus
     let guild_id = &msg.guild_id;
 
     if guild_id.is_some() {
-        // This looks horrible
-        match DatabaseGuild::get(ctx, guild_id.unwrap().0 as i64).await {
-            Some(document) => {
-                let database_guild: DatabaseGuild = bson::from_document(document).unwrap();
-                match database_guild.prefix {
-                    Some(new_prefix) => return Some(new_prefix),
-                    None => {},
-                }
-            },
-            None => {},
+        let prefix_cache = ctx.data.read().await.get::<PrefixCache>().cloned().unwrap();
+
+        // Counting channel
+        if let Some(prefix_map) = prefix_cache.get(&guild_id.unwrap()) {
+            return Some(prefix_map.value().parse().unwrap());
         }
     }
 
@@ -288,17 +293,23 @@ async fn main() {
         };
         data.insert::<Database>(mongo_client);
 
-        // Search guilds that have counting
-        let counting_filter = doc! { "counting": { "$ne": null } };
-        let mut guilds_with_counting_cursor = data.get::<Database>().unwrap().database(&mongo_database).collection("guilds").find(counting_filter, None).await.unwrap();
-        // Make a DashMap for guilds that have counting
         let counting_cache: DashMap<ChannelId, i64> = DashMap::new();
-        while let Some(document) = guilds_with_counting_cursor.next().await {
+        let prefix_cache: DashMap<GuildId, String> = DashMap::new();
+        // Iterate through every guild in the database
+        let mut database_guilds_cursor = data.get::<Database>().unwrap().database(&mongo_database).collection("guilds").find(None, None).await.unwrap();
+        while let Some(document) = database_guilds_cursor.next().await {
             let database_guild = bson::from_document::<DatabaseGuild>(document.unwrap()).unwrap();
-            counting_cache.insert(ChannelId::from(database_guild.counting.unwrap().channel as u64), database_guild.counting.unwrap().count);
+            if database_guild.prefix.is_some() {
+                prefix_cache.insert(GuildId::from(database_guild._id as u64), database_guild.prefix.unwrap());
+            }
+            if database_guild.counting.is_some() {
+                counting_cache.insert(ChannelId::from(database_guild.counting.unwrap().channel as u64), database_guild.counting.unwrap().count);
+            }
         }
-        // Insert the DashMap
+
+        // Insert the DashMaps
         data.insert::<CountingCache>(Arc::from(counting_cache));
+        data.insert::<PrefixCache>(Arc::from(prefix_cache));
 
         // Insert uptime to global data
         data.insert::<Uptime>(Instant::now());

@@ -4,7 +4,7 @@ use serenity::framework::standard::{CommandResult, macros::command, Args};
 use serenity::utils::Colour;
 use crate::helpers::database_helper::{DatabaseGuild, GuildCounting};
 use serenity::builder::CreateEmbed;
-use crate::helpers::global_data::CountingCache;
+use crate::helpers::global_data::{CountingCache, PrefixCache};
 
 #[command]
 #[description = "Sets the prefix for this server"]
@@ -13,7 +13,12 @@ use crate::helpers::global_data::CountingCache;
 #[only_in("guilds")]
 #[usage = "new_prefix"]
 async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    // Reset the prefix
     if args.is_empty() {
+        // Remove from cache
+        ctx.data.read().await.get::<PrefixCache>().unwrap().remove(&msg.guild_id.unwrap());
+
+        // Remove from database
         let mut database_guild = DatabaseGuild::get_or_insert_new(ctx, msg.guild_id.unwrap().0 as i64).await;
         database_guild.prefix = None;
 
@@ -27,6 +32,10 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 msg.channel_id.say(ctx, ":no_entry_sign: The prefix provided was not valid.").await?;
             },
             Ok(new_prefix) => {
+                // Put it in the cache
+                ctx.data.read().await.get::<PrefixCache>().unwrap().insert(msg.guild_id.unwrap(), new_prefix.clone());
+
+                // Put it in the database
                 let mut database_guild = DatabaseGuild::get_or_insert_new(ctx, msg.guild_id.unwrap().0 as i64).await;
                 database_guild.prefix = Some(new_prefix.clone());
 
