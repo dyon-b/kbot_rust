@@ -27,7 +27,6 @@ use tracing_subscriber::{
 use commands::{
     meta::*,
     moderation::*,
-    info::*,
     configuration::*,
     modrinth::*,
 };
@@ -107,16 +106,12 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(ping, about, invite)]
+#[commands(ping, about, invite, serverinfo)]
 struct Meta;
 
 #[group]
 #[commands(purge)]
 struct Moderation;
-
-#[group]
-#[commands(serverinfo)]
-struct Info;
 
 #[group]
 #[prefixes("config", "configure", "conf")]
@@ -227,7 +222,6 @@ async fn main() {
         .after(after)
         .group(&META_GROUP)
         .group(&MODERATION_GROUP)
-        .group(&INFO_GROUP)
         .group(&CONFIGURATION_GROUP)
         .group(&MODRINTH_GROUP)
         .help(&MY_HELP);
