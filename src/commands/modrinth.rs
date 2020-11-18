@@ -11,12 +11,8 @@ use crate::models::modrinth::*;
 
 #[command]
 #[aliases("s")]
+#[min_args(1)]
 pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if args.is_empty() {
-        msg.channel_id.say(&ctx.http, ":no_entry_sign: Please provide what to search.").await?;
-        return Ok(())
-    }
-
     let limit: i32 = 5;
     let mut api_url = format!("https://api.modrinth.com/api/v1/mod?limit={}&index=relevance&", limit);
     // Append query
@@ -101,12 +97,8 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[aliases("modid", "mod_id", "mod")]
+#[num_args(1)]
 pub async fn id(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if args.is_empty() {
-        msg.channel_id.say(&ctx.http, ":no_entry_sign: Please provide what mod id to get.").await?;
-        return Ok(())
-    }
-
     let api_url = format!("https://api.modrinth.com/api/v1/mod/{}", url_encode(args.message()));
 
     // Get the json from the API and handle any errors.

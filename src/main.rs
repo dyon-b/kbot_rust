@@ -37,7 +37,7 @@ use mongodb::options::ClientOptions as MongoClientOptions;
 use mongodb::bson::{doc};
 
 use serenity::client::bridge::gateway::GatewayIntents;
-use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup, CommandError};
+use serenity::framework::standard::{CommandResult, HelpOptions, Args, CommandGroup, CommandError, DispatchError};
 use serenity::model::channel::Message;
 use serenity::model::id::{UserId, ChannelId};
 use serenity::model::guild::{Guild, GuildUnavailable};
@@ -45,7 +45,6 @@ use crate::helpers::database_helper::DatabaseGuild;
 use crate::helpers::global_data::{Uptime, CountingCache};
 use serenity::futures::StreamExt;
 use dashmap::DashMap;
-use serenity::utils::Colour;
 
 struct ShardManagerContainer;
 
@@ -152,6 +151,34 @@ async fn my_help(
     Ok(())
 }
 
+// This is for errors that happen before command execution.
+#[hook]
+async fn on_dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
+    match error {
+        DispatchError::NotEnoughArguments { min, given } => {
+            let error_string = {
+                if given == 0 && min == 1 {
+                    format!(":no_entry_sign: I need an argument to run this command.")
+                } else if given == 0 {
+                    format!(":no_entry_sign: I need at least {} arguments to run this command.", min)
+                } else {
+                    format!(":no_entry_sign: I need {} arguments to run this command, But I was only given {}.", min, given)
+                }
+            };
+            let _ = msg.channel_id.say(ctx, error_string).await;
+        }
+        DispatchError::TooManyArguments { max, given } => {
+            let _ = msg.channel_id.say(ctx, format!(":no_entry_sign: I needed a maximum of {} argument(s) but you gave me {}.", max, given)).await;
+        }
+        DispatchError::Ratelimited(x) => {
+            let _ = msg.reply(ctx, format!(":no_entry_sign: You can use this command again in {} seconds.", x.as_secs())).await;
+        }
+        _ => {
+            error!("Unhandled dispatch error: {:?}", error);
+        }
+    }
+}
+
 #[hook]
 async fn after(_: &Context, _: &Message, command_name: &str, error: Result<(), CommandError>) {
     if let Err(why) = error {
@@ -222,6 +249,7 @@ async fn main() {
             .ignore_bots(true)
             .ignore_webhooks(true)
         )
+        .on_dispatch_error(on_dispatch_error)
         .after(after)
         .group(&META_GROUP)
         .group(&MODERATION_GROUP)
