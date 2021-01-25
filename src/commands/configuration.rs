@@ -61,14 +61,19 @@ async fn count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         // Remove from database and cache
         let mut database_guild = DatabaseGuild::get_or_insert_new(ctx, msg.guild_id.unwrap().0 as i64).await;
 
-        // Remove from cache
-        ctx.data.read().await.get::<CountingCache>().unwrap().remove(&ChannelId::from(database_guild.counting.unwrap().channel as u64));
+        // Check if there even is a counting channel
+        if database_guild.counting.is_none() {
+            msg.channel_id.say(ctx, ":no_entry_sign: There is no counting channel to remove.").await?;
+        } else {
+            // Remove from cache
+            ctx.data.read().await.get::<CountingCache>().unwrap().remove(&ChannelId::from(database_guild.counting.unwrap().channel as u64));
 
-        //Remove from database
-        database_guild.counting = None;
-        DatabaseGuild::insert_or_replace(ctx, database_guild).await;
+            //Remove from database
+            database_guild.counting = None;
+            DatabaseGuild::insert_or_replace(ctx, database_guild).await;
 
-        msg.channel_id.say(ctx, ":white_check_mark: Removed the counting channel.").await?;
+            msg.channel_id.say(ctx, ":white_check_mark: Removed the counting channel.").await?;
+        }
     } else {
         let new_channel = args.single::<ChannelId>();
         match new_channel {
