@@ -1,3 +1,5 @@
+#![feature(option_result_contains)]
+
 mod commands;
 mod helpers;
 mod models;
@@ -103,7 +105,7 @@ impl EventHandler for Handler {
                     _ => {}
                 };
             }
-        }
+        };
     }
 
     async fn ready(&self, _: Context, ready: Ready) {
@@ -211,7 +213,7 @@ async fn dynamic_prefix(ctx: &Context, msg: &Message) -> Option<String> { // Cus
         // Counting channel
         if let Some(prefix_map) = prefix_cache.get(&guild_id.unwrap()) {
             return Some(prefix_map.value().parse().unwrap());
-        }
+        };
     }
 
     Some(env::var("DEFAULT_PREFIX").unwrap_or_else(|_| String::from("?")))
@@ -270,13 +272,14 @@ async fn main() {
     let mut client = Client::builder(&token)
         .framework(framework)
         .event_handler(Handler)
-        .add_intent(GatewayIntents::GUILD_MESSAGES)
-        .add_intent(GatewayIntents::GUILDS)
-        .add_intent(GatewayIntents::DIRECT_MESSAGES)
-        .add_intent(GatewayIntents::GUILD_MESSAGE_REACTIONS)
-        .add_intent(GatewayIntents::DIRECT_MESSAGE_REACTIONS)
-        .add_intent(GatewayIntents::GUILD_PRESENCES)
-        .await
+        .intents(
+            GatewayIntents::GUILD_MESSAGES |
+            GatewayIntents::GUILDS |
+            GatewayIntents::DIRECT_MESSAGES |
+            GatewayIntents::GUILD_MESSAGE_REACTIONS |
+            GatewayIntents::DIRECT_MESSAGE_REACTIONS |
+            GatewayIntents::GUILD_PRESENCES
+        ).await
         .expect("Error creating client");
 
     {

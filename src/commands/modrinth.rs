@@ -59,9 +59,10 @@ pub async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut can_manage_messages = false;
     let guild = msg.guild(&ctx).await;
     if guild.is_some() {
-        can_manage_messages = msg.guild(&ctx).await.unwrap()
-            .user_permissions_in(msg.channel_id, &ctx.http.get_current_user().await?.id)
-            .contains(Permissions::MANAGE_MESSAGES);
+        let guild = msg.guild(&ctx).await.unwrap();
+        can_manage_messages = guild
+            .user_permissions_in(guild.channels.get(&msg.channel_id).unwrap(), guild.members.get(&ctx.http.get_current_user().await?.id).unwrap())
+            .contains(&Permissions::MANAGE_MESSAGES);
     }
 
     let mut reactions_collector = message.await_reactions(&ctx).timeout(Duration::from_secs(5 * 60))
