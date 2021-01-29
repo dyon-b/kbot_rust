@@ -8,6 +8,7 @@ use crate::models::avwx::{AvwxIcao, AvwxIcaoRunway};
 use std::time::Duration;
 use serenity::futures::StreamExt;
 use serenity::builder::CreateEmbed;
+use crate::helpers::global_data::ReqwestContainer;
 
 #[command]
 #[num_args(1)]
@@ -20,8 +21,10 @@ async fn icao(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         Err(_) => { msg.channel_id.say(ctx, ":no_entry_sign: Couldn't parse the ICAO ident, Are you sure it's valid?").await?; return Ok(()); }
     };
 
+    // Get the reqwest client
+    let reqwest_client  = ctx.data.read().await.get::<ReqwestContainer>().cloned().unwrap();
     // Fetch the data
-    let avwx_response = reqwest::Client::new().get(&format!("https://avwx.rest/api/station/{}?format=json", url_encode(&icao)))
+    let avwx_response = reqwest_client.get(&format!("https://avwx.rest/api/station/{}?format=json", url_encode(&icao)))
         .header(reqwest::header::AUTHORIZATION, &format!("Token {}", env::var("AVWX_TOKEN").unwrap()))
         .send().await?;
 

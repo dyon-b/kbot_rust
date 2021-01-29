@@ -44,9 +44,12 @@ use serenity::model::channel::Message;
 use serenity::model::id::{UserId, ChannelId, GuildId};
 use serenity::model::guild::{Guild, GuildUnavailable};
 use crate::helpers::database_helper::DatabaseGuild;
-use crate::helpers::global_data::{Uptime, CountingCache, PrefixCache};
+use crate::helpers::global_data::{Uptime, CountingCache, PrefixCache, ReqwestContainer};
 use serenity::futures::StreamExt;
 use dashmap::DashMap;
+
+use reqwest::Client as ReqwestClient;
+use reqwest::redirect::Policy;
 
 struct ShardManagerContainer;
 
@@ -329,6 +332,9 @@ async fn main() {
 
         // Insert uptime to global data
         data.insert::<Uptime>(Instant::now());
+
+        // Insert a new Reqwest client
+        data.insert::<ReqwestContainer>(ReqwestClient::builder().redirect(Policy::none()).build().unwrap());
     }
 
     if let Err(why) = client.start_autosharded().await {
