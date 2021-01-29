@@ -43,9 +43,6 @@ async fn icao(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
 
-    println!("{}", &avwx_data.runways.len());
-    println!("{:?}", &avwx_data.runways);
-
     // Send the embed
     let mut sent_message = msg.channel_id.send_message(&ctx.http, |m| m.embed(|e| {
         e.0 = create_icao_embed(&avwx_data).0;
