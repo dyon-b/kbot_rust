@@ -31,6 +31,7 @@ use commands::{
     moderation::*,
     configuration::*,
     modrinth::*,
+    aviation::*,
 };
 
 use helpers::global_data::Database;
@@ -134,6 +135,10 @@ struct Configuration;
 #[prefixes("mr", "modrinth")]
 #[commands(search, id)]
 struct Modrinth;
+
+#[group]
+#[commands(icao)]
+struct Aviation;
 
 #[help]
 #[individual_command_tip =
@@ -267,7 +272,10 @@ async fn main() {
         .group(&MODERATION_GROUP)
         .group(&CONFIGURATION_GROUP)
         .group(&MODRINTH_GROUP)
+        .group(&AVIATION_GROUP)
         .help(&MY_HELP);
+
+    //let avwx_token = env::var("AVWX_TOKEN").unwrap();
 
     let mut client = Client::builder(&token)
         .framework(framework)
