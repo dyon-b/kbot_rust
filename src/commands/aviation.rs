@@ -88,7 +88,7 @@ async fn icao(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             if current_pos == 0 {
                 embed.0 = create_icao_embed(&avwx_data).0;
             } else {
-                embed.0 = create_icao_runway_embed(current_pos as i32, &avwx_data.runways.get((current_pos - 1)).unwrap()).0;
+                embed.0 = create_icao_runway_embed(current_pos as i32, &avwx_data.runways.get(current_pos - 1).unwrap()).0;
             }
             embed
         })).await;

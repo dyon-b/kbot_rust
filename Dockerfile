@@ -1,4 +1,5 @@
-FROM rust:latest as builder
+#FROM rust:latest as builder
+FROM rustlang/rust:nightly as builder
 WORKDIR /usr/src/kbot
 COPY . .
 RUN cargo install --path .
