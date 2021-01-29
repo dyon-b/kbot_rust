@@ -30,7 +30,6 @@ use commands::{
     meta::*,
     moderation::*,
     configuration::*,
-    modrinth::*,
     aviation::*,
 };
 
@@ -133,11 +132,6 @@ struct Moderation;
 #[prefixes("config", "configure", "conf")]
 #[commands(prefix, count)]
 struct Configuration;
-
-#[group]
-#[prefixes("mr", "modrinth")]
-#[commands(search, id)]
-struct Modrinth;
 
 #[group]
 #[commands(icao)]
@@ -274,7 +268,6 @@ async fn main() {
         .group(&META_GROUP)
         .group(&MODERATION_GROUP)
         .group(&CONFIGURATION_GROUP)
-        .group(&MODRINTH_GROUP)
         .group(&AVIATION_GROUP)
         .help(&MY_HELP);
 
