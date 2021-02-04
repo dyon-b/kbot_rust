@@ -1,5 +1,3 @@
-#![feature(option_result_contains)]
-
 mod commands;
 mod helpers;
 mod models;

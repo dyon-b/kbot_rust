@@ -91,7 +91,8 @@ async fn count(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                         embed
                     })).await?;
                     return Ok(());
-                } else if !guild.user_permissions_in(guild.channels.get(&new_channel).unwrap(), guild.members.get(&ctx.http.get_current_user().await?.id).unwrap()).contains(&Permissions::MANAGE_MESSAGES) {
+                } else if !guild.user_permissions_in(guild.channels.get(&new_channel).unwrap(), guild.members.get(&ctx.http.get_current_user().await?.id).unwrap())
+                    .unwrap().contains(Permissions::MANAGE_MESSAGES) {
                     msg.channel_id.send_message(&ctx.http, |m| m.embed(|embed| {
                         embed.0 = invalid_channel_embed(String::from("Missing permissions to delete messages in that channel.")).0;
                         embed

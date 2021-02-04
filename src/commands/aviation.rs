@@ -58,13 +58,10 @@ async fn icao(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
     // Check if the bot can manage messages, And if so enable the bot to remove reactions.
     let mut can_manage_messages = false;
-    match msg.guild(&ctx).await {
-        None => {}
-        Some(guild) => {
-            can_manage_messages = guild
-                .user_permissions_in(guild.channels.get(&msg.channel_id).unwrap(), guild.members.get(&ctx.http.get_current_user().await?.id).unwrap())
-                .contains(&Permissions::MANAGE_MESSAGES);
-        }
+    if let Some(guild) = msg.guild(&ctx).await {
+        can_manage_messages = guild
+            .user_permissions_in(guild.channels.get(&msg.channel_id).unwrap(), guild.members.get(&ctx.http.get_current_user().await?.id).unwrap())
+            .unwrap().contains(Permissions::MANAGE_MESSAGES);
     }
 
     // Position in the menu
