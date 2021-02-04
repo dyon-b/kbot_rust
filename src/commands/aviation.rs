@@ -114,6 +114,11 @@ fn create_icao_embed(avwx_icao: &AvwxIcao) -> CreateEmbed {
         .field("Other", format!("Iata: {}\nType: {}\nReporting: {}", &avwx_icao.iata, &avwx_icao.airport_type, &avwx_icao.reporting), true)
         .color(Colour::BLITZ_BLUE);
 
+    let mut extra_text = String::new();
+    if let Some(website) = &avwx_icao.website { extra_text += &format!("Website: {}\n", website) }
+    if let Some(note) = &avwx_icao.note { extra_text += &format!("Note: {}\n", note) }
+    if !extra_text.is_empty() { embed.field("Extra", extra_text, true); }
+
     embed
 }
 
