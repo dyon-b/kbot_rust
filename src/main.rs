@@ -78,12 +78,21 @@ impl EventHandler for Handler {
     }
 
     async fn message(&self, ctx: Context, msg: Message) {
-        let counting_cache = ctx.data.read().await.get::<CountingCache>().cloned().unwrap();
-
         // Counting channel
-        if let Some(counting_map) = counting_cache.get(&msg.channel_id) {
+        let counting_cache = ctx.data.read().await.get::<CountingCache>().cloned().unwrap();
+        // The number is gotten like this so the reference is dropped.
+        let number: Option<i64> = {
+            if let Some(counting_map) = counting_cache.get(&msg.channel_id) {
+                Some(*counting_map.value())
+            } else {
+                None
+            }
+        };
+        if let Some(number) = number {
+            // Parse the message content into an i64, Otherwise delete the message.
             if let Ok(new_number) = msg.content.parse::<i64>() {
-                if new_number == counting_map.value() + 1 {
+                if new_number == number + 1 {
+                    // Insert the new number into the cache
                     counting_cache.insert(msg.channel_id, new_number);
 
                     // Edit the database to show the right number
@@ -106,7 +115,7 @@ impl EventHandler for Handler {
                     _ => {}
                 };
             }
-        };
+        }
     }
 
     async fn ready(&self, _: Context, ready: Ready) {
