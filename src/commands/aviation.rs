@@ -46,9 +46,12 @@ async fn icao(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
 
+    // Position in the menu
+    let mut current_pos = 0;
+
     // Send the embed
     let mut sent_message = msg.channel_id.send_message(&ctx.http, |m| m.embed(|e| {
-        e.0 = create_icao_embed(&avwx_data).0;
+        e.0 = create_icao_embed(current_pos as i32, &avwx_data).0;
         e
     })).await?;
 
@@ -63,9 +66,6 @@ async fn icao(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             .user_permissions_in(guild.channels.get(&msg.channel_id).unwrap(), guild.members.get(&ctx.http.get_current_user().await?.id).unwrap())
             .unwrap().contains(Permissions::MANAGE_MESSAGES);
     }
-
-    // Position in the menu
-    let mut current_pos = 0;
 
     // Create a reaction collector and wait for someone to react to the message
     let mut reactions_collector = sent_message.await_reactions(&ctx).timeout(Duration::from_secs(5 * 60))
@@ -86,7 +86,7 @@ async fn icao(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         // Edit the original message
         &sent_message.edit(&ctx.http, |f| f.embed(|embed| {
             if current_pos == 0 {
-                embed.0 = create_icao_embed(&avwx_data).0;
+                embed.0 = create_icao_embed(current_pos as i32, &avwx_data).0;
             } else {
                 embed.0 = create_icao_runway_embed(current_pos as i32, &avwx_data.runways.get(current_pos - 1).unwrap()).0;
             }
@@ -102,7 +102,7 @@ async fn icao(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     Ok(())
 }
 
-fn create_icao_embed(avwx_icao: &AvwxIcao) -> CreateEmbed {
+fn create_icao_embed(position: i32, avwx_icao: &AvwxIcao) -> CreateEmbed {
     let mut embed = CreateEmbed::default();
 
     embed.title(format!("{} - {}", avwx_icao.icao, &avwx_icao.name))
@@ -112,6 +112,7 @@ fn create_icao_embed(avwx_icao: &AvwxIcao) -> CreateEmbed {
         .field("Elevation", format!("In feet: {}\nIn meters: {}",
                                     &avwx_icao.elevation_ft, &avwx_icao.elevation_m), true)
         .field("Other", format!("Iata: {}\nType: {}\nReporting: {}", &avwx_icao.iata, &avwx_icao.airport_type, &avwx_icao.reporting), true)
+        .footer(|f| f.text(format!("Menu position: {}", position)))
         .color(Colour::BLITZ_BLUE);
 
     let mut extra_text = String::new();
@@ -125,11 +126,12 @@ fn create_icao_embed(avwx_icao: &AvwxIcao) -> CreateEmbed {
 fn create_icao_runway_embed(position: i32, avwx_icao_runway: &AvwxIcaoRunway) -> CreateEmbed {
     let mut embed = CreateEmbed::default();
 
-    embed.title(format!("Runway {}", position))
+    embed.title(format!("Runway {}-{}", &avwx_icao_runway.ident1, &avwx_icao_runway.ident2))
         .field("Bearings", format!("One: {}\nTwo: {}", &avwx_icao_runway.bearing1, &avwx_icao_runway.bearing2), true)
-        .field("Idents", format!("One: {}\nTwo: {}", &avwx_icao_runway.ident1, &avwx_icao_runway.ident2), true)
+        //.field("Idents", format!("One: {}\nTwo: {}", &avwx_icao_runway.ident1, &avwx_icao_runway.ident2), true)
         .field("Size", format!("Width: {}\nLenght: {}", &avwx_icao_runway.width_ft, &avwx_icao_runway.width_ft), true)
         .field("Other", format!("Surface: {}\nLights: {}", &avwx_icao_runway.surface, &avwx_icao_runway.lights), true)
+        .footer(|f| f.text(format!("Menu position: {}", position)))
         .color(Colour::BLITZ_BLUE);
 
     embed
