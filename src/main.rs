@@ -302,13 +302,13 @@ async fn main() {
         let connection_url = env::var("MONGO_URL").unwrap_or_else(|_| String::from("mongodb://127.0.0.1:27017"));
         let mut client_options = match MongoClientOptions::parse(&connection_url).await {
             Ok(options) => options,
-            Err(why) => panic!("Error occurred getting mongo client options: {}", why),
+            Err(why) => panic!("Error occurred getting mongo client options: {:?}", why),
         };
         client_options.app_name = Some("kbot_rust".to_string());
         // Store mongo client in context data
         let mongo_client = match MongoClient::with_options(client_options) {
             Ok(client) => client,
-            Err(why) => panic!("Error occurred getting mongo client: {}", why),
+            Err(why) => panic!("Error occurred getting mongo client: {:?}", why),
         };
         data.insert::<Database>(mongo_client);
 
