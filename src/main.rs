@@ -113,7 +113,7 @@ impl EventHandler for Handler {
                 // Delete the message if it couldn't parse as a number
                 match msg.delete(&ctx).await {
                     _ => {}
-                };
+                }
             }
         }
     }
@@ -179,7 +179,7 @@ async fn on_dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
         DispatchError::NotEnoughArguments { min, given } => {
             let error_string = {
                 if given == 0 && min == 1 {
-                    format!(":no_entry_sign: I need an argument to run this command.")
+                    ":no_entry_sign: I need an argument to run this command.".to_string()
                 } else if given == 0 {
                     format!(":no_entry_sign: I need at least {} arguments to run this command.", min)
                 } else {
